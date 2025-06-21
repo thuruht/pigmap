@@ -1,0 +1,47 @@
+{
+  "appName": "PigMap.org",
+  "header": {
+    "findMe": "Find My Location"
+  },
+  "controls": {
+    "report": "Report Livestock"
+  },
+  "reportForm": {
+    "title": "Report Livestock Sighting",
+    "dropPin": "Drop a pin on the map or use your current location",
+    "livestockType": "Select Livestock Type",
+    "animalTypes": {
+      "pig": "Pig/Hog",
+      "cow": "Cow",
+      "sheep": "Sheep",
+      "goat": "Goat",
+      "horse": "Horse",
+      "other": "Other"
+    },
+    "description": "Description (number, color, behavior, etc.)",
+    "uploadMedia": "Upload Photo/Video",
+    "submit": "Submit Report",
+    "cancel": "Cancel"
+  },
+  "popup": {
+    "spotted": "spotted",
+    "reported": "Reported"
+  },
+  "notifications": {
+    "success": "Report submitted successfully!",
+    "error": "Error submitting report. Please try again."
+  },
+  "languageSelector": {
+    "language": "Language"
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "requiredField": "Required field",
+    "map": "Map showing livestock sightings",
+    "mapControls": "Map controls",
+    "reportDialog": "Report livestock form",
+    "closeButton": "Close",
+    "loading": "Loading",
+    "locationError": "Unable to find your location"
+  }
+}

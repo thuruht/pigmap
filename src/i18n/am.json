@@ -1,0 +1,37 @@
+{
+  "appName": "PigMap.org",
+  "header": {
+    "findMe": "ስፍራዬን አግኝ"
+  },
+  "controls": {
+    "report": "የቤት እንስሳትን ሪፖርት አድርግ"
+  },
+  "reportForm": {
+    "title": "የቤት እንስሳት ማየት ሪፖርት",
+    "dropPin": "በካርታው ላይ ፒን ያስቀምጡ ወይም አሁን ያሉበትን ቦታ ይጠቀሙ",
+    "livestockType": "የቤት እንስሳት አይነት ይምረጡ",
+    "animalTypes": {
+      "pig": "አሳማ",
+      "cow": "ላም",
+      "sheep": "በግ",
+      "goat": "ፍየል",
+      "horse": "ፈረስ",
+      "other": "ሌላ"
+    },
+    "description": "መግለጫ (ቁጥር፣ ቀለም፣ ባህሪ፣ ወዘተ)",
+    "uploadMedia": "ፎቶ/ቪዲዮ ይጫኑ",
+    "submit": "ሪፖርት አስገባ",
+    "cancel": "ሰርዝ"
+  },
+  "popup": {
+    "spotted": "ታይቷል",
+    "reported": "ተዘግቧል"
+  },
+  "notifications": {
+    "success": "ሪፖርት በተሳካ ሁኔታ ገብቷል!",
+    "error": "ሪፖርት ማስገባት አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "languageSelector": {
+    "language": "ቋንቋ"
+  }
+}

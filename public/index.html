@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PigMap.org - Livestock Location Tracker</title>
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=chocolate-classical-sans:400|climate-crisis:400" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css">
+  <style>
+    :root {
+      /* Define our color palette with green and red accents */
+      --primary-green: #4a8f5c;
+      --dark-green: #2e7d32;
+      --light-green: #a5d6a7;
+      --accent-red: #d32f2f;
+      --light-red: #ef5350;
+      --background-light: #f5f5f5;
+      --text-dark: #333333;
+      --text-light: #ffffff;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body, p {
+      font-family: 'Chocolate Classical Sans', sans-serif;
+    }
+    
+    h1, h2, h3, h4, h5 {
+      font-family: 'Climate Crisis', sans-serif;
+    }
+    
+    body {
+      background-color: var(--background-light);
+      color: var(--text-dark);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      background-color: var(--primary-green);
+      color: var(--text-light);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid var(--dark-green);
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .logo img {
+      height: 40px;
+    }
+    
+    /* Accent colors for interactive elements */
+    a {
+      color: var(--dark-green);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    
+    a:hover {
+      color: var(--primary-green);
+      text-decoration: underline;
+    }
+    
+    /* Error states with red accent */
+    .error-text {
+      color: var(--accent-red);
+      font-size: 0.9em;
+      margin-top: 4px;
+    }
+    
+    input:invalid, 
+    textarea:invalid, 
+    select:invalid {
+      border-color: var(--accent-red);
+      border-width: 2px;
+    }
+    
+    /* Green highlights for success states */
+    .success-text {
+      color: var(--dark-green);
+      font-size: 0.9em;
+      margin-top: 4px;
+    }
+    
+    .success-border {
+      border: 2px solid var(--primary-green);
+    }
+    
+    /* RTL support */
+    .rtl header,
+    .rtl .controls,
+    .rtl .report-panel,
+    .rtl .popup {
+      text-align: right;
+    }
+    
+    .rtl .logo {
+      flex-direction: row-reverse;
+    }
+    
+    .rtl .report-panel {
+      left: auto;
+      right: 20px;
+    }
+    
+    .rtl .controls {
+      right: auto;
+      left: 15px;
+    }
+    
+    main {
+      flex: 1;
+      display: flex;
+      position: relative;
+    }
+    
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .controls {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-left: 4px solid var(--primary-green);
+    }
+    
+    .language-selector {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+    
+    .language-selector select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      background: white;
+      border-left: 3px solid var(--primary-green);
+    }
+    
+    /* Style for recommended languages */
+    .recommended-language {
+      font-weight: bold;
+      background-color: rgba(165, 214, 167, 0.2); /* Light green background */
+      border-left: 3px solid var(--dark-green);
+    }
+    
+    /* Accessibility - Focus styles */
+    a:focus,
+    button:focus,
+    select:focus,
+    input:focus,
+    textarea:focus {
+      outline: 3px solid var(--primary-green);
+      outline-offset: 2px;
+    }
+    
+    /* High contrast focus for keyboard navigation */
+    a:focus-visible,
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid #ffbf00;
+      outline-offset: 2px;
+    }
+    
+    /* Skip to content link for keyboard users */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--primary-green);
+      color: white;
+      padding: 8px;
+      z-index: 10000;
+      transition: top 0.3s;
+    }
+    
+    .skip-link:focus {
+      top: 0;
+    }
+    
+    .report-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+      border-top: 4px solid var(--primary-green);
+    }
+    
+    button {
+      background-color: #4a8f5c;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Chocolate Classical Sans', sans-serif;
+    }
+    
+    button:hover {
+      background-color: #3a7e4c;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .popup {
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      max-width: 300px;
+    }
+    
+    .popup img {
+      max-width: 100%;
+      margin-top: 10px;
+    }
+    
+    textarea, input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    /* Accessibility - Form fields with required indicator */
+    .form-field {
+      margin-bottom: 15px;
+      position: relative;
+    }
+    
+    .form-field label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .required::after {
+      content: '*';
+      color: #d32f2f;
+      margin-left: 4px;
+    }
+    
+    /* Screen reader only text */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+    
+    /* Color contrast improvements */
+    button {
+      background-color: var(--dark-green); /* Darker green for better contrast */
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Chocolate Classical Sans', sans-serif;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button:hover {
+      background-color: var(--primary-green); /* Primary green on hover */
+      transform: translateY(-2px);
+      box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    /* Button types */
+    button.primary {
+      background-color: var(--primary-green);
+    }
+    
+    button.secondary {
+      background-color: #6c757d;
+    }
+    
+    button.danger {
+      background-color: var(--accent-red);
+    }
+    
+    button.danger:hover {
+      background-color: var(--light-red);
+    }
+    
+    button#cancel-report {
+      background-color: #6c757d;
+    }
+    
+    /* Notification styles with better contrast */
+    .notification {
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+      font-weight: 500;
+      max-width: 90%;
+      width: auto;
+      text-align: center;
+      animation: slideDown 0.3s ease-out forwards;
+    }
+    
+    @keyframes slideDown {
+      from { 
+        transform: translate(-50%, -20px);
+        opacity: 0;
+      }
+      to { 
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+    
+    .notification.success {
+      background-color: var(--dark-green);
+      color: white;
+      border-left: 5px solid var(--light-green);
+    }
+    
+    .notification.error {
+      background-color: var(--accent-red);
+      color: white;
+      border-left: 5px solid var(--light-red);
+    }
+    
+    /* Form fields and accessibility elements */
+    textarea, input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    textarea:focus, 
+    input:focus, 
+    select:focus {
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 2px rgba(74, 143, 92, 0.25);
+    }
+    
+    /* Form validation styles */
+    input:valid:not(:placeholder-shown), 
+    textarea:valid:not(:placeholder-shown), 
+    select:valid:not([value=""]) {
+      border-left: 3px solid var(--primary-green);
+    }
+    
+    input:invalid:not(:placeholder-shown), 
+    textarea:invalid:not(:placeholder-shown), 
+    select:invalid:not([value=""]) {
+      border-left: 3px solid var(--accent-red);
+    }
+    
+    /* Form actions */
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    /* Map markers with accent colors */
+    .livestock-marker {
+      position: relative;
+    }
+    
+    .livestock-marker::after {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      right: -5px;
+      bottom: -5px;
+      border-radius: 50%;
+      border: 2px solid var(--primary-green);
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.3s;
+    }
+    
+    .livestock-marker:hover::after {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    /* Popup animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .popup {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- Skip link for keyboard navigation -->
+  <a href="#main-content" class="skip-link" data-i18n="accessibility.skipToContent">Skip to main content</a>
+  
+  <header role="banner">
+    <div class="logo">
+      <img src="./icons/emoji_nature_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" alt="PigMap Logo" aria-hidden="true">
+      <h1 data-i18n="appName">PigMap.org</h1>
+    </div>
+    <div>
+      <label for="language-selector" class="sr-only" data-i18n="languageSelector.language">Language</label>
+      <select id="language-selector" aria-label="Select language">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="ht">Kreyòl Ayisyen</option>
+        <option value="zh">中文</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="ar">العربية</option>
+        <option value="am">አማርኛ</option>
+        <option value="sw">Kiswahili</option>
+        <option value="so">Soomaali</option>
+        <option value="fa">فارسی</option>
+        <option value="fr">Français</option>
+        <option value="ne">नेपाली</option>
+        <option value="kar">Karen</option>
+        <option value="my">မြန်မာဘာသာ</option>
+        <option value="pt">Português</option>
+        <option value="ur">اردو</option>
+        <option value="ku">Kurdî</option>
+      </select>
+      <button id="find-me" data-i18n="header.findMe" aria-label="Find my current location on the map">Find My Location</button>
+    </div>
+  </header>
+  
+  <main id="main-content" role="main">
+    <div id="map" role="application" aria-label="Interactive map showing livestock sightings"></div>
+    
+    <div class="controls" role="region" aria-label="Map controls">
+      <button id="report-btn" data-i18n="controls.report" aria-haspopup="dialog">Report Livestock</button>
+    </div>
+    
+    <div id="report-form" class="report-panel hidden" role="dialog" aria-labelledby="report-title" aria-modal="true">
+      <h3 id="report-title" data-i18n="reportForm.title">Report Livestock Sighting</h3>
+      <p data-i18n="reportForm.dropPin">Drop a pin on the map or use your current location</p>
+      <form id="sighting-form">
+        <div class="form-field">
+          <label for="livestock-type" class="required" data-i18n="reportForm.livestockType">Select Livestock Type</label>
+          <select id="livestock-type" required aria-required="true">
+            <option value="" disabled selected>-- Select --</option>
+            <option value="pig" data-i18n="reportForm.animalTypes.pig">Pig/Hog</option>
+            <option value="cow" data-i18n="reportForm.animalTypes.cow">Cow</option>
+            <option value="sheep" data-i18n="reportForm.animalTypes.sheep">Sheep</option>
+            <option value="goat" data-i18n="reportForm.animalTypes.goat">Goat</option>
+            <option value="horse" data-i18n="reportForm.animalTypes.horse">Horse</option>
+            <option value="other" data-i18n="reportForm.animalTypes.other">Other</option>
+          </select>
+        </div>
+        
+        <div class="form-field">
+          <label for="comment" class="required" data-i18n="reportForm.description">Description (number, color, behavior, etc.)</label>
+          <textarea id="comment" required aria-required="true" rows="3"></textarea>
+        </div>
+        
+        <div class="form-field">
+          <label for="media-upload" data-i18n="reportForm.uploadMedia">Upload Photo/Video</label>
+          <input type="file" id="media-upload" accept="image/*,video/*">
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" data-i18n="reportForm.submit">Submit Report</button>
+          <button type="button" id="cancel-report" data-i18n="reportForm.cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Notification template that will be dynamically shown -->
+    <div id="notification-container" aria-live="polite" class="hidden"></div>
+  </main>
+  
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

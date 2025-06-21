@@ -1,0 +1,18 @@
+{
+  "name": "livestock-tracker",
+  "version": "1.0.0",
+  "description": "Real-time livestock location tracker",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish"
+  },
+  "dependencies": {
+    "itty-router": "^4.2.2",
+    "ol": "^10.6.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.20.5"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "appName": "PigMap.org",
+  "header": {
+    "findMe": "Jwenn Lokasyon Mwen"
+  },
+  "controls": {
+    "report": "Rapòte Bèt"
+  },
+  "reportForm": {
+    "title": "Rapòte Obsèvasyon Bèt",
+    "dropPin": "Mete yon pin sou kat la oswa itilize lokasyon aktyèl ou",
+    "livestockType": "Chwazi Tip Bèt",
+    "animalTypes": {
+      "pig": "Kochon",
+      "cow": "Bèf",
+      "sheep": "Mouton",
+      "goat": "Kabrit",
+      "horse": "Cheval",
+      "other": "Lòt"
+    },
+    "description": "Deskripsyon (kantite, koulè, konpòtman, elatriye)",
+    "uploadMedia": "Telechaje Foto/Videyo",
+    "submit": "Soumèt Rapò",
+    "cancel": "Anile"
+  },
+  "popup": {
+    "spotted": "te obsève",
+    "reported": "Rapòte"
+  },
+  "notifications": {
+    "success": "Rapò soumèt avèk siksè!",
+    "error": "Erè pandan soumisyon rapò a. Tanpri eseye ankò."
+  },
+  "languageSelector": {
+    "language": "Lang"
+  }
+}

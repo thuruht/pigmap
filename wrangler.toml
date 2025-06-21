@@ -1,0 +1,52 @@
+# PigMap.org Cloudflare Worker Configuration
+
+name = "pigmap"
+main = "src/index.js"
+compatibility_date = "2024-06-01"
+
+workers_dev = true  # Enable the workers.dev subdomain for development
+routes = [
+  # Main domain routes
+  { pattern = "pigmap.org/*", zone_name = "pigmap.org" },
+  { pattern = "www.pigmap.org/*", zone_name = "pigmap.org" },
+  { pattern = "media.pigmap.org/*", zone_name = "pigmap.org" },
+  
+  # Kansas City specific routes
+  { pattern = "kc.pigmap.org/*", zone_name = "pigmap.org" },
+  { pattern = "kcmo.pigmap.org/*", zone_name = "pigmap.org" },
+  { pattern = "kansascity.pigmap.org/*", zone_name = "pigmap.org" }
+]
+
+# R2 Bucket for Media Storage
+[[r2_buckets]]
+binding = "LIVESTOCK_MEDIA"
+bucket_name = "livestock-media"
+preview_bucket_name = "livestock-media-preview"
+
+# KV Namespace for Configuration
+[[kv_namespaces]]
+binding = "PIGMAP_CONFIG"
+id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your KV namespace ID
+preview_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your preview KV namespace ID
+
+# D1 Database for Reports
+[[d1_databases]]
+binding = "LIVESTOCK_DB"
+database_name = "livestock"
+database_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your D1 database ID
+preview_database_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your preview D1 database ID
+
+# Service bindings for static assets
+[[services]]
+binding = "ASSETS"
+service = "pigmap-assets"
+environment = "production"
+
+# Durable Object for real-time updates
+[[durable_objects.bindings]]
+name = "LIVESTOCK_REPORTS"
+class_name = "LivestockReport"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["LivestockReport"]
