@@ -17,9 +17,21 @@ jobs:
           node-version: '18'
           cache: 'npm'
       - run: npm ci
-      - name: Publish to Cloudflare
+      - name: Copy library files for client
+        run: |
+          mkdir -p public/lib
+          # Copy OpenLayers
+          cp -r node_modules/ol public/lib/
+          # Copy GSAP
+          mkdir -p public/lib/gsap
+          cp -r node_modules/gsap/dist/* public/lib/gsap/
+          # Copy ES Module Shims
+          cp node_modules/es-module-shims/dist/es-module-shims.js public/lib/
+          # Create RBush module
+          echo 'import RBush from "rbush"; export default RBush;' > public/lib/rbush.js
+      - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          command: publish
+          command: deploy

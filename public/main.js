@@ -6,11 +6,98 @@ import VectorLayer from 'ol/layer/Vector.js';
 import VectorSource from 'ol/source/Vector.js';
 import Feature from 'ol/Feature.js';
 import Point from 'ol/geom/Point.js';
-import {Circle, Fill, Stroke, Style, Text} from 'ol/style.js';
+import {Circle, Fill, Stroke, Style, Text, Icon} from 'ol/style.js';
 import Overlay from 'ol/Overlay.js';
 import Geolocation from 'ol/Geolocation.js';
-import {v4 as uuidv4} from 'uuid';
+// Use local UUIDv4 function
+const uuidv4 = () => {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+};
 import XYZ from 'ol/source/XYZ.js';
+import Select from 'ol/interaction/Select.js';
+import {pointerMove} from 'ol/events/condition.js';
+// Import GSAP for animations
+import { gsap } from '/lib/gsap/gsap-core.js';
+
+// GSAP Animation Utilities
+// These functions will be used throughout the application for smooth animations
+const animations = {
+  // Fade in animation for elements
+  fadeIn: (element, duration = 0.5, delay = 0) => {
+    return gsap.fromTo(element, 
+      { opacity: 0 }, 
+      { opacity: 1, duration, delay, ease: "power2.out" }
+    );
+  },
+  
+  // Fade out animation for elements
+  fadeOut: (element, duration = 0.3, delay = 0) => {
+    return gsap.to(element, { opacity: 0, duration, delay, ease: "power2.in" });
+  },
+  
+  // Slide in from right animation (for panels, forms, etc.)
+  slideInRight: (element, duration = 0.5, delay = 0) => {
+    return gsap.fromTo(element, 
+      { x: '100%', opacity: 0 }, 
+      { x: '0%', opacity: 1, duration, delay, ease: "power2.out" }
+    );
+  },
+  
+  // Slide out to right animation
+  slideOutRight: (element, duration = 0.4, delay = 0) => {
+    return gsap.to(element, { x: '100%', opacity: 0, duration, delay, ease: "power2.in" });
+  },
+  
+  // Popup entrance animation
+  popupShow: (element, duration = 0.4) => {
+    return gsap.fromTo(element, 
+      { scale: 0.8, opacity: 0 }, 
+      { scale: 1, opacity: 1, duration, ease: "back.out(1.7)" }
+    );
+  },
+  
+  // Popup exit animation
+  popupHide: (element, duration = 0.3) => {
+    return gsap.to(element, { scale: 0.8, opacity: 0, duration, ease: "power2.in" });
+  },
+  
+  // Button pulse animation (for attention)
+  buttonPulse: (element) => {
+    return gsap.fromTo(element, 
+      { scale: 1 }, 
+      { 
+        scale: 1.05, 
+        duration: 0.4, 
+        ease: "power2.inOut",
+        repeat: 1, 
+        yoyo: true 
+      }
+    );
+  },
+  
+  // Map marker entrance animation
+  markerAdd: (element, duration = 0.5) => {
+    return gsap.fromTo(element, 
+      { scale: 0, opacity: 0 }, 
+      { scale: 1, opacity: 1, duration, ease: "elastic.out(1, 0.5)" }
+    );
+  },
+  
+  // Notification entrance animation
+  notificationShow: (element, duration = 0.5, delay = 0) => {
+    return gsap.fromTo(element, 
+      { y: -50, opacity: 0 }, 
+      { y: 0, opacity: 1, duration, delay, ease: "power3.out" }
+    );
+  },
+  
+  // Notification exit animation
+  notificationHide: (element, duration = 0.4) => {
+    return gsap.to(element, { y: -50, opacity: 0, duration, ease: "power3.in" });
+  }
+};
 
 // Internationalization support
 let currentLanguage = 'en';
@@ -222,6 +309,7 @@ const vectorLayer = new VectorLayer({
     const type = feature.get('type') || 'pig';
     const count = feature.get('count') || 1;
     const timestamp = feature.get('timestamp') || Date.now();
+    const icon = feature.get('icon') || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
     
     // Age-based rendering - fresher sightings are more opaque
     const ageInHours = (Date.now() - timestamp) / (1000 * 60 * 60);
@@ -230,7 +318,19 @@ const vectorLayer = new VectorLayer({
     // Icon scale based on count
     const scale = Math.min(1.5, 0.8 + (count * 0.1));
     
-    // Get the appropriate emoji based on livestock type
+    // Use the custom icon image if available, otherwise fall back to the emoji style
+    if (icon) {
+      const iconStyle = new Style({
+        image: new Icon({
+          src: `/icons/${icon}`,
+          scale: 0.3 * scale,  // Adjust scale to make icons appropriate size
+          opacity: opacity
+        })
+      });
+      return iconStyle;
+    }
+    
+    // Fallback to previous emoji style if no icon is available
     let emoji = '🐖'; // Default pig
     if (type === 'cow') emoji = '🐄';
     else if (type === 'sheep') emoji = '🐑';
@@ -266,6 +366,14 @@ map.addLayer(vectorLayer);
 // Create popup overlay
 const popupContainer = document.createElement('div');
 popupContainer.className = 'popup';
+popupContainer.style.opacity = '0'; // Start hidden for animation
+const closeBtn = document.createElement('button');
+closeBtn.className = 'popup-close-btn';
+closeBtn.innerHTML = '×';
+closeBtn.setAttribute('aria-label', 'Close popup');
+closeBtn.setAttribute('title', 'Close');
+popupContainer.appendChild(closeBtn);
+
 const popup = new Overlay({
   element: popupContainer,
   positioning: 'bottom-center',
@@ -276,6 +384,29 @@ const popup = new Overlay({
     duration: 250
   }
 });
+
+// Function to show popup with animation
+function showPopup(position) {
+  popup.setPosition(position);
+  // Run animation only if the popup is newly showing
+  if (popupContainer.style.opacity === '0' || popupContainer.style.opacity === '') {
+    animations.popupShow(popupContainer);
+  }
+}
+
+// Function to hide popup with animation
+function hidePopup() {
+  animations.popupHide(popupContainer).then(() => {
+    popup.setPosition(undefined);
+  });
+}
+
+// Add close button event listener
+closeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  hidePopup();
+});
+
 map.addOverlay(popup);
 
 // Create geolocation service
@@ -343,6 +474,7 @@ map.on('click', (event) => {
     const comment = feature.get('comment') || '';
     const timestamp = feature.get('timestamp') || Date.now();
     const imageUrl = feature.get('imageUrl');
+    const icon = feature.get('icon') || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
     
     // Format the timestamp
     const date = new Date(timestamp);
@@ -357,19 +489,22 @@ map.on('click', (event) => {
     
     // Build popup content
     let content = `
-      <h3>${count} ${translatedType}${count > 1 ? 's' : ''} ${spottedText}</h3>
+      <div class="popup-header">
+        <img src="/icons/${icon}" alt="${translatedType} icon" class="popup-icon">
+        <h3>${count} ${translatedType}${count > 1 ? 's' : ''} ${spottedText}</h3>
+      </div>
       <p>${comment}</p>
       <p><small>${reportedText}: ${formattedDate}</small></p>
     `;
     
     if (imageUrl) {
-      content += `<img src="${imageUrl}" alt="${translatedType} sighting">`;
+      content += `<img src="${imageUrl}" alt="${translatedType} sighting" class="popup-image">`;
     }
     
-    popupContainer.innerHTML = content;
-    popup.setPosition(coordinates);
+    popupContainer.innerHTML = content + closeBtn.outerHTML;
+    showPopup(coordinates);
   } else {
-    popup.setPosition(undefined);
+    hidePopup();
   }
 });
 
@@ -387,21 +522,22 @@ reportButton.addEventListener('click', () => {
   
   // Create temporary feature for placing on map
   if (!tempFeature) {
+    // Get the currently selected icon
+    const selectedIcon = document.getElementById('selected-icon').value;
+    
     tempFeature = new Feature({
       geometry: new Point(map.getView().getCenter())
     });
+    
+    // Use the selected icon for the temp feature
     tempFeature.setStyle(new Style({
-      image: new Circle({
-        radius: 10,
-        fill: new Fill({
-          color: '#ff0000'
-        }),
-        stroke: new Stroke({
-          color: '#ffffff',
-          width: 2
-        })
+      image: new Icon({
+        src: `/icons/${selectedIcon}`,
+        scale: 0.3,
+        opacity: 0.8
       })
     }));
+    
     vectorSource.addFeature(tempFeature);
   }
   
@@ -436,6 +572,7 @@ sightingForm.addEventListener('submit', async (event) => {
   const livestockType = document.getElementById('livestock-type').value;
   const comment = document.getElementById('comment').value;
   const mediaFile = document.getElementById('media-upload').files[0];
+  const selectedIcon = document.getElementById('selected-icon').value;
   
   // Get coordinates from tempFeature or user's location
   let coordinates;
@@ -456,7 +593,8 @@ sightingForm.addEventListener('submit', async (event) => {
     comment: comment,
     longitude: coordinates[0],
     latitude: coordinates[1],
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    icon: selectedIcon
   };
   
   // Create FormData for file upload
@@ -473,14 +611,18 @@ sightingForm.addEventListener('submit', async (event) => {
       body: formData
     });
     
+    const result = await response.json();
+    
     if (response.ok) {
       // Add to map immediately (optimistic UI)
       const newFeature = new Feature({
         geometry: new Point(fromLonLat([reportData.longitude, reportData.latitude])),
+        id: result.id,
         type: reportData.type,
         count: reportData.count,
         comment: reportData.comment,
-        timestamp: reportData.timestamp
+        timestamp: reportData.timestamp,
+        icon: reportData.icon
       });
       vectorSource.addFeature(newFeature);
       
@@ -498,6 +640,11 @@ sightingForm.addEventListener('submit', async (event) => {
       // Show success message
       const successMessage = getTranslatedText('notifications.success') || 'Report submitted successfully!';
       showNotification(successMessage);
+      
+      // Show the edit token in a modal
+      if (result.editToken) {
+        showTokenModal(result.editToken);
+      }
     } else {
       const errorMessage = getTranslatedText('notifications.error') || 'Error submitting report. Please try again.';
       showNotification(errorMessage, 'error');
@@ -532,7 +679,8 @@ async function fetchReports() {
           count: report.count,
           comment: report.comment,
           timestamp: report.timestamp,
-          imageUrl: report.imageUrl
+          imageUrl: report.imageUrl,
+          icon: report.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png'
         });
         vectorSource.addFeature(feature);
       }
@@ -585,6 +733,9 @@ function setupWebSocket() {
   
   const socket = new WebSocket(wsUrl);
   
+  // Store comments by report ID
+  window.commentsByReport = {};
+  
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
@@ -602,6 +753,7 @@ function setupWebSocket() {
         for (const report of data.reports) {
           const feature = new Feature({
             geometry: new Point(fromLonLat([report.longitude, report.latitude])),
+            id: report.id,
             type: report.type,
             count: report.count || 1,
             comment: report.comment || '',
@@ -610,11 +762,37 @@ function setupWebSocket() {
           });
           vectorSource.addFeature(feature);
         }
-      } else if (data.type === 'update') {
-        // Add single new report
+        
+        // Store initial comments
+        if (data.comments) {
+          window.commentsByReport = data.comments;
+        }
+      } else if (data.type === 'new' || data.type === 'update') {
         const report = data.report;
+        
+        if (data.type === 'update') {
+          // Find and update existing feature
+          const features = vectorSource.getFeatures();
+          const existingFeature = features.find(f => f.get('id') === report.id);
+          
+          if (existingFeature) {
+            existingFeature.set('type', report.type);
+            existingFeature.set('count', report.count || 1);
+            existingFeature.set('comment', report.comment || '');
+            
+            // If the popup is currently showing this report, update it
+            if (popup.getPosition() && popup.getElement().dataset.reportId === report.id) {
+              showReportPopup(existingFeature);
+            }
+            
+            return;
+          }
+        }
+        
+        // Add new report
         const feature = new Feature({
           geometry: new Point(fromLonLat([report.longitude, report.latitude])),
+          id: report.id,
           type: report.type,
           count: report.count || 1,
           comment: report.comment || '',
@@ -622,6 +800,20 @@ function setupWebSocket() {
           imageUrl: report.imageUrl
         });
         vectorSource.addFeature(feature);
+      } else if (data.type === 'comment') {
+        // Add new comment to the local storage
+        const reportId = data.reportId;
+        if (!window.commentsByReport[reportId]) {
+          window.commentsByReport[reportId] = [];
+        }
+        
+        window.commentsByReport[reportId].unshift(data.comment);
+        
+        // If the comments panel is open for this report, update it
+        const commentsPanel = document.getElementById('comments-panel');
+        if (commentsPanel && commentsPanel.style.display !== 'none' && commentsPanel.dataset.reportId === reportId) {
+          displayComments(reportId);
+        }
       }
     } catch (error) {
       console.error('Error processing WebSocket message:', error);
@@ -955,6 +1147,7 @@ function handleFeatureClick(evt) {
     const comment = feature.get('comment') || '';
     const timestamp = feature.get('timestamp') || Date.now();
     const imageUrl = feature.get('imageUrl');
+    const icon = feature.get('icon') || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
     
     // Format the timestamp
     const date = new Date(timestamp);
@@ -969,13 +1162,16 @@ function handleFeatureClick(evt) {
     
     // Build popup content
     let content = `
-      <h3>${count} ${translatedType}${count > 1 ? 's' : ''} ${spottedText}</h3>
+      <div class="popup-header">
+        <img src="/icons/${icon}" alt="${translatedType} icon" class="popup-icon">
+        <h3>${count} ${translatedType}${count > 1 ? 's' : ''} ${spottedText}</h3>
+      </div>
       <p>${comment}</p>
       <p><small>${reportedText}: ${formattedDate}</small></p>
     `;
     
     if (imageUrl) {
-      content += `<img src="${imageUrl}" alt="${translatedType} sighting">`;
+      content += `<img src="${imageUrl}" alt="${translatedType} sighting" class="popup-image">`;
     }
     
     popupContainer.innerHTML = content;
@@ -1028,6 +1224,7 @@ function setupGlobalKeyboardShortcuts() {
 // Call this function during initialization
 document.addEventListener('DOMContentLoaded', () => {
   setupGlobalKeyboardShortcuts();
+  loadIconSelector(); // Load the icon selector
   
   // Create a keyboard shortcut guide that appears when pressing Alt+?
   document.addEventListener('keydown', (e) => {
@@ -1190,8 +1387,8 @@ setupMapKeyboardAccessibility();
 addAccessibilityToFeatures();
 
 // Add hover interaction for markers
-const hoverInteraction = new ol.interaction.Select({
-  condition: ol.events.condition.pointerMove,
+const hoverInteraction = new Select({
+  condition: pointerMove,
   style: function(feature) {
     const type = feature.get('type') || 'pig';
     const count = feature.get('count') || 1;
@@ -1231,3 +1428,499 @@ const hoverInteraction = new ol.interaction.Select({
 });
 
 map.addInteraction(hoverInteraction);
+
+// Add HTML elements for edit form and comments panel to the page
+function addUIElements() {
+  // Create edit form
+  const editFormHTML = `
+    <div id="edit-form" class="form-container hidden">
+      <h2 data-i18n="editForm.title">Edit Livestock Sighting</h2>
+      <form id="edit-sighting-form">
+        <div class="form-group">
+          <label for="edit-token" data-i18n="editForm.enterToken">Enter Edit Token</label>
+          <input type="text" id="edit-token" data-i18n-placeholder="editForm.tokenPlaceholder" placeholder="Paste your edit token here" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-type" data-i18n="reportForm.livestockType">Select Livestock Type</label>
+          <select id="edit-type" required>
+            <option value="pig" data-i18n="reportForm.animalTypes.pig">Pig/Hog</option>
+            <option value="cow" data-i18n="reportForm.animalTypes.cow">Cow</option>
+            <option value="sheep" data-i18n="reportForm.animalTypes.sheep">Sheep</option>
+            <option value="goat" data-i18n="reportForm.animalTypes.goat">Goat</option>
+            <option value="horse" data-i18n="reportForm.animalTypes.horse">Horse</option>
+            <option value="other" data-i18n="reportForm.animalTypes.other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="edit-count">Count</label>
+          <input type="number" id="edit-count" min="1" value="1" required>
+        </div>
+        <div class="form-group">
+          <label for="edit-comment" data-i18n="reportForm.description">Description</label>
+          <textarea id="edit-comment" rows="3"></textarea>
+        </div>
+        <div class="form-buttons">
+          <button type="submit" class="btn btn-primary" data-i18n="editForm.save">Save Changes</button>
+          <button type="button" id="cancel-edit" class="btn btn-secondary" data-i18n="editForm.cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  // Create comments panel
+  const commentsPanelHTML = `
+    <div id="comments-panel" class="panel hidden">
+      <div class="panel-header">
+        <h2 data-i18n="comments.title">Comments</h2>
+        <button class="close-btn" id="close-comments">&times;</button>
+      </div>
+      <div id="comments-list" class="comments-list">
+        <!-- Comments will be loaded here -->
+      </div>
+      <div class="comment-form">
+        <h3 data-i18n="popup.addComment">Add Comment</h3>
+        <form id="comment-form">
+          <div class="form-group">
+            <textarea id="comment-content" data-i18n-placeholder="comments.writeComment" placeholder="Write a comment..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="comment-media" class="file-label" data-i18n="comments.uploadMedia">Upload Photo/Video</label>
+            <input type="file" id="comment-media" accept="image/*,video/*">
+          </div>
+          <div class="form-buttons">
+            <button type="submit" class="btn btn-primary" data-i18n="comments.submit">Post Comment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  // Create token display modal
+  const tokenModalHTML = `
+    <div id="token-modal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 data-i18n="editToken.title">Edit Token</h2>
+          <button class="close-btn" id="close-token-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p data-i18n="editToken.description">Keep this token to edit your report later. This is the only time you'll see it!</p>
+          <div class="token-display">
+            <code id="token-value"></code>
+          </div>
+          <button id="copy-token" class="btn btn-primary" data-i18n="editToken.copyToken">Copy Token</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Append to body
+  document.body.insertAdjacentHTML('beforeend', editFormHTML);
+  document.body.insertAdjacentHTML('beforeend', commentsPanelHTML);
+  document.body.insertAdjacentHTML('beforeend', tokenModalHTML);
+  
+  // Add event listeners
+  document.getElementById('edit-sighting-form').addEventListener('submit', handleEditSubmit);
+  document.getElementById('cancel-edit').addEventListener('click', () => {
+    document.getElementById('edit-form').classList.add('hidden');
+  });
+  
+  document.getElementById('comment-form').addEventListener('submit', handleCommentSubmit);
+  document.getElementById('close-comments').addEventListener('click', closeCommentPanel);
+  
+  document.getElementById('close-token-modal').addEventListener('click', () => {
+    document.getElementById('token-modal').classList.add('hidden');
+  });
+  
+  document.getElementById('copy-token').addEventListener('click', () => {
+    const tokenElement = document.getElementById('token-value');
+    const token = tokenElement.textContent;
+    
+    navigator.clipboard.writeText(token).then(() => {
+      showNotification(getTranslatedText('editToken.tokenCopied') || 'Token copied to clipboard!');
+    });
+  });
+}
+
+// Call this function during initialization
+addUIElements();
+
+// Handle map clicks - modified to support edit and comments
+map.on('click', (event) => {
+  // Temporarily disable click handling if in report mode
+  if (reportForm.classList.contains('active')) {
+    return;
+  }
+  
+  // Feature click detection
+  const feature = map.forEachFeatureAtPixel(event.pixel, (feature) => feature);
+  
+  if (feature && feature !== positionFeature && feature !== accuracyFeature) {
+    showReportPopup(feature);
+  } else {
+    popup.setPosition(undefined);
+    closeCommentPanel();
+  }
+});
+
+// Function to show report popup with comments and edit options
+function showReportPopup(feature) {
+  const coordinates = feature.getGeometry().getCoordinates();
+  const type = feature.get('type') || 'pig';
+  const count = feature.get('count') || 1;
+  const comment = feature.get('comment') || '';
+  const timestamp = feature.get('timestamp') || Date.now();
+  const imageUrl = feature.get('imageUrl');
+  const reportId = feature.get('id');
+  const icon = feature.get('icon') || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
+  
+  const date = new Date(timestamp);
+  const formattedDate = date.toLocaleString(currentLanguage.replace('_', '-'));
+  
+  // Get translated terms
+  const spottedText = getTranslatedText('popup.spotted') || 'spotted';
+  const reportedText = getTranslatedText('popup.reported') || 'Reported';
+  const editReportText = getTranslatedText('popup.editReport') || 'Edit Report';
+  const viewCommentsText = getTranslatedText('popup.viewComments') || 'View Comments';
+  
+  // Get translated animal type if available
+  const translatedType = getTranslatedText(`reportForm.animalTypes.${type}`) || type;
+  
+  // Build popup content
+  let content = `
+    <div class="popup-content">
+      <div class="popup-header">
+        <img src="/icons/${icon}" alt="${translatedType} icon" class="popup-icon">
+        <h3>${count} ${translatedType}${count > 1 ? 's' : ''} ${spottedText}</h3>
+      </div>
+      <p>${comment}</p>
+      <p><small>${reportedText}: ${formattedDate}</small></p>
+  `;
+  
+  if (imageUrl) {
+    content += `<img src="${imageUrl}" alt="${translatedType} sighting" class="popup-image">`;
+  }
+  
+  // Add buttons for edit and comments
+  content += `
+      <div class="popup-actions">
+        <button id="edit-report-btn" class="btn btn-secondary">${editReportText}</button>
+        <button id="view-comments-btn" class="btn btn-primary">${viewCommentsText}</button>
+      </div>
+    </div>
+  `;
+  
+  popupContainer.innerHTML = content;
+  popupContainer.dataset.reportId = reportId;
+  popup.setPosition(coordinates);
+  
+  // Add event listeners to the buttons
+  document.getElementById('edit-report-btn').addEventListener('click', () => {
+    showEditForm(reportId, type, count, comment);
+  });
+  
+  document.getElementById('view-comments-btn').addEventListener('click', () => {
+    showCommentsPanel(reportId);
+  });
+}
+
+// Show edit form
+function showEditForm(reportId, type, count, comment) {
+  const editForm = document.getElementById('edit-form');
+  
+  // Populate form fields
+  document.getElementById('edit-type').value = type;
+  document.getElementById('edit-count').value = count;
+  document.getElementById('edit-comment').value = comment;
+  
+  // Store report ID in the form
+  editForm.dataset.reportId = reportId;
+  
+  // Show the form
+  editForm.classList.remove('hidden');
+  document.getElementById('edit-token').focus();
+}
+
+// Handle edit form submission
+async function handleEditSubmit(event) {
+  event.preventDefault();
+  
+  const editForm = document.getElementById('edit-form');
+  const reportId = editForm.dataset.reportId;
+  const editToken = document.getElementById('edit-token').value.trim();
+  const type = document.getElementById('edit-type').value;
+  const count = parseInt(document.getElementById('edit-count').value);
+  const comment = document.getElementById('edit-comment').value.trim();
+  
+  if (!editToken) {
+    showNotification(getTranslatedText('editForm.tokenRequired') || 'Edit token is required', 'error');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/reports/${reportId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        editToken,
+        report: {
+          type,
+          count,
+          comment
+        }
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Hide form
+      editForm.classList.add('hidden');
+      
+      // Show success message
+      const successMessage = getTranslatedText('notifications.editSuccess') || 'Report updated successfully!';
+      showNotification(successMessage);
+      
+      // Note: The map will update automatically via WebSocket
+    } else {
+      const errorMessage = result.error || getTranslatedText('notifications.editError') || 'Error updating report. Please try again.';
+      showNotification(errorMessage, 'error');
+    }
+  } catch (error) {
+    console.error('Error updating report:', error);
+    const errorMessage = getTranslatedText('notifications.editError') || 'Error updating report. Please try again.';
+    showNotification(errorMessage, 'error');
+  }
+}
+
+// Show comments panel and load comments
+async function showCommentsPanel(reportId) {
+  const commentsPanel = document.getElementById('comments-panel');
+  commentsPanel.dataset.reportId = reportId;
+  commentsPanel.classList.remove('hidden');
+  
+  // Load and display comments
+  await displayComments(reportId);
+  
+  // Focus on comment input
+  document.getElementById('comment-content').focus();
+}
+
+// Close comments panel
+function closeCommentPanel() {
+  const commentsPanel = document.getElementById('comments-panel');
+  commentsPanel.classList.add('hidden');
+}
+
+// Display comments for a report
+async function displayComments(reportId) {
+  const commentsList = document.getElementById('comments-list');
+  let comments = [];
+  
+  // Try to get comments from the WebSocket cache first
+  if (window.commentsByReport && window.commentsByReport[reportId]) {
+    comments = window.commentsByReport[reportId];
+  } else {
+    // Fetch comments from API
+    try {
+      const response = await fetch(`/api/reports/${reportId}/comments`);
+      if (response.ok) {
+        comments = await response.json();
+        // Cache the comments
+        if (!window.commentsByReport) {
+          window.commentsByReport = {};
+        }
+        window.commentsByReport[reportId] = comments;
+      } else {
+        showNotification('Error loading comments', 'error');
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      showNotification('Error loading comments', 'error');
+    }
+  }
+  
+  // Display comments
+  if (comments.length === 0) {
+    commentsList.innerHTML = `<p class="empty-comments" data-i18n="comments.empty">No comments yet. Be the first to comment!</p>`;
+  } else {
+    commentsList.innerHTML = comments.map(comment => {
+      const date = new Date(comment.timestamp);
+      const formattedDate = date.toLocaleString(currentLanguage.replace('_', '-'));
+      
+      let html = `
+        <div class="comment">
+          <div class="comment-content">${comment.content}</div>
+          <div class="comment-date">${formattedDate}</div>
+      `;
+      
+      if (comment.mediaUrl) {
+        const isVideo = comment.mediaUrl.match(/\.(mp4|webm|ogg)$/i);
+        if (isVideo) {
+          html += `
+            <video controls class="comment-media">
+              <source src="${comment.mediaUrl}" type="${comment.mediaType || 'video/mp4'}">
+              Your browser does not support the video tag.
+            </video>
+          `;
+        } else {
+          html += `<img src="${comment.mediaUrl}" alt="Comment media" class="comment-media">`;
+        }
+      }
+      
+      html += `</div>`;
+      return html;
+    }).join('');
+  }
+  
+  // Update translations
+  translateUI();
+}
+
+// Handle comment form submission
+async function handleCommentSubmit(event) {
+  event.preventDefault();
+  
+  const commentsPanel = document.getElementById('comments-panel');
+  const reportId = commentsPanel.dataset.reportId;
+  const content = document.getElementById('comment-content').value.trim();
+  const mediaInput = document.getElementById('comment-media');
+  
+  if (!content) {
+    return;
+  }
+  
+  // Create form data
+  const formData = new FormData();
+  formData.append('comment', JSON.stringify({ content }));
+  
+  // Add media if selected
+  if (mediaInput.files.length > 0) {
+    formData.append('media', mediaInput.files[0]);
+  }
+  
+  try {
+    const response = await fetch(`/api/reports/${reportId}/comments`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Clear form
+      document.getElementById('comment-content').value = '';
+      document.getElementById('comment-media').value = '';
+      
+      // Show success message
+      const successMessage = getTranslatedText('notifications.commentSuccess') || 'Comment added successfully!';
+      showNotification(successMessage);
+      
+      // Note: The comments panel will update automatically via WebSocket
+    } else {
+      const errorMessage = result.error || getTranslatedText('notifications.commentError') || 'Error posting comment. Please try again.';
+      showNotification(errorMessage, 'error');
+    }
+  } catch (error) {
+    console.error('Error posting comment:', error);
+    const errorMessage = getTranslatedText('notifications.commentError') || 'Error posting comment. Please try again.';
+    showNotification(errorMessage, 'error');
+  }
+}
+
+// Show token modal after successful report submission
+function showTokenModal(token) {
+  const tokenModal = document.getElementById('token-modal');
+  const tokenValue = document.getElementById('token-value');
+  
+  tokenValue.textContent = token;
+  tokenModal.classList.remove('hidden');
+}
+
+// Load icons from the icons directory and create the icon selector
+async function loadIconSelector() {
+  const iconGrid = document.getElementById('icon-grid');
+  if (!iconGrid) return;
+  
+  try {
+    // Fetch the list of icons from the server
+    const response = await fetch('/api/icons');
+    
+    if (response.ok) {
+      const icons = await response.json();
+      
+      // Clear any existing icons
+      iconGrid.innerHTML = '';
+      
+      // Add each icon to the grid
+      icons.forEach(icon => {
+        const iconElement = document.createElement('div');
+        iconElement.className = 'icon-option';
+        iconElement.setAttribute('role', 'radio');
+        iconElement.setAttribute('aria-checked', 'false');
+        iconElement.setAttribute('tabindex', '0');
+        iconElement.dataset.icon = icon;
+        
+        const img = document.createElement('img');
+        img.src = `/icons/${icon}`;
+        img.alt = icon.replace(/_128dp.*\.png$/g, '').replace(/_/g, ' ');
+        img.loading = 'lazy';
+        
+        iconElement.appendChild(img);
+        iconGrid.appendChild(iconElement);
+        
+        // Set the default selected icon
+        if (icon === 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png') {
+          iconElement.classList.add('selected');
+          iconElement.setAttribute('aria-checked', 'true');
+        }
+        
+        // Add click handler
+        iconElement.addEventListener('click', () => {
+          // Remove selected class from all icons
+          document.querySelectorAll('.icon-option').forEach(el => {
+            el.classList.remove('selected');
+            el.setAttribute('aria-checked', 'false');
+          });
+          
+          // Add selected class to this icon
+          iconElement.classList.add('selected');
+          iconElement.setAttribute('aria-checked', 'true');
+          
+          // Update the hidden input
+          document.getElementById('selected-icon').value = icon;
+          
+          // Update temporary marker style if it exists
+          if (tempFeature) {
+            tempFeature.setStyle(new Style({
+              image: new Icon({
+                src: `/icons/${icon}`,
+                scale: 0.3,
+                opacity: 0.8
+              })
+            }));
+          }
+        });
+        
+        // Add keyboard support
+        iconElement.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            iconElement.click();
+          }
+        });
+      });
+    } else {
+      console.error('Failed to load icons');
+      // Fall back to using the default icon
+    }
+  } catch (error) {
+    console.error('Error loading icons:', error);
+    // Fall back to using the default icon
+  }
+}
+
+// Call loadIconSelector during initialization
+loadIconSelector();

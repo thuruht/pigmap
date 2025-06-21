@@ -41,3 +41,16 @@ class_name = "LivestockReport"
 [[migrations]]
 tag = "v1"
 new_classes = ["LivestockReport"]
+
+# Assets binding for static files
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# Set SPA handling to improve asset routing behavior
+not_found_handling = "single-page-application"
+# Ensure everything passes through the worker first to set proper MIME types
+run_worker_first = true
+
+# Enable observability logs
+[observability.logs]
+enabled = true

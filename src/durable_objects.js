@@ -37,8 +37,9 @@ export class LivestockReport {
       
       // Send initial data
       const reports = await this.storage.get('reports') || [];
+      const comments = await this.storage.get('comments') || {};
       if (reports.length > 0) {
-        server.send(JSON.stringify({ type: 'initial', reports }));
+        server.send(JSON.stringify({ type: 'initial', reports, comments }));
       }
       
       // Set up event handlers
@@ -69,23 +70,80 @@ export class LivestockReport {
     
     // Broadcast a message to all connected clients
     if (url.pathname === '/broadcast') {
-      const report = await request.json();
+      const data = await request.json();
       
-      // Store recent reports (keep max 100)
-      let reports = await this.storage.get('reports') || [];
-      reports.unshift(report);
-      reports = reports.slice(0, 100);
-      await this.storage.put('reports', reports);
-      
-      // Broadcast to all connected WebSocket sessions
-      const message = JSON.stringify({ type: 'update', report });
-      this.sessions.forEach((session) => {
-        try {
-          session.send(message);
-        } catch (error) {
-          // Ignore errors - session will be cleaned up on next 'close' event
+      // Store data differently based on type
+      if (data.type === 'comment') {
+        // It's a comment - store it with the report
+        let comments = await this.storage.get('comments') || {};
+        if (!comments[data.reportId]) {
+          comments[data.reportId] = [];
         }
-      });
+        comments[data.reportId].unshift({
+          id: data.commentId,
+          content: data.content,
+          timestamp: data.timestamp,
+          mediaUrl: data.mediaUrl
+        });
+        
+        // Keep max 100 comments per report
+        if (comments[data.reportId].length > 100) {
+          comments[data.reportId] = comments[data.reportId].slice(0, 100);
+        }
+        
+        await this.storage.put('comments', comments);
+        
+        // Broadcast comment to all connected WebSocket sessions
+        const message = JSON.stringify({ 
+          type: 'comment', 
+          reportId: data.reportId,
+          comment: {
+            id: data.commentId,
+            content: data.content,
+            timestamp: data.timestamp,
+            mediaUrl: data.mediaUrl
+          }
+        });
+        
+        this.sessions.forEach((session) => {
+          try {
+            session.send(message);
+          } catch (error) {
+            // Ignore errors - session will be cleaned up on next 'close' event
+          }
+        });
+      } else {
+        // It's a report update or new report
+        let reports = await this.storage.get('reports') || [];
+        
+        // Check if it's an update to an existing report
+        if (data.updated) {
+          const index = reports.findIndex(r => r.id === data.id);
+          if (index !== -1) {
+            reports[index] = { ...reports[index], ...data };
+          }
+        } else {
+          // New report
+          reports.unshift(data);
+          reports = reports.slice(0, 100); // Keep max 100
+        }
+        
+        await this.storage.put('reports', reports);
+        
+        // Broadcast to all connected WebSocket sessions
+        const message = JSON.stringify({ 
+          type: data.updated ? 'update' : 'new', 
+          report: data 
+        });
+        
+        this.sessions.forEach((session) => {
+          try {
+            session.send(message);
+          } catch (error) {
+            // Ignore errors - session will be cleaned up on next 'close' event
+          }
+        });
+      }
       
       return new Response('Broadcast sent', { status: 200 });
     }
@@ -94,6 +152,17 @@ export class LivestockReport {
     if (url.pathname === '/reports') {
       const reports = await this.storage.get('reports') || [];
       return new Response(JSON.stringify(reports), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Get comments for a specific report
+    if (url.pathname.startsWith('/comments/')) {
+      const reportId = url.pathname.substring('/comments/'.length);
+      const allComments = await this.storage.get('comments') || {};
+      const reportComments = allComments[reportId] || [];
+      
+      return new Response(JSON.stringify(reportComments), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
