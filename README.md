@@ -13,7 +13,7 @@ PigMap.org is a web application that allows users in the USA to anonymously repo
 
 ## Features
 
-- Anonymous reporting of livestock sightings
+- Fully anonymous reporting of livestock sightings (no IP addresses or personal data stored)
 - Real-time updates via WebSockets
 - Media upload capabilities (photos/videos)
 - Proximity-based sorting of reports
@@ -127,3 +127,19 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 For questions or support, please contact [admin@pigmap.org](mailto:admin@pigmap.org)
+
+## Privacy
+
+PigMap.org is designed with privacy as a core principle:
+
+- **No IP Addresses**: We do not store IP addresses or any personally identifiable information
+- **Anonymous Contributions**: All reports and comments are completely anonymous
+- **Minimal Data Collection**: Only the information explicitly provided by users is stored
+- **Media Privacy**: Uploaded media is stored without any metadata that could identify the source
+- **No Analytics**: We don't use any third-party analytics or tracking
+
+If you want to clear any existing IP data from your deployment, run:
+
+```bash
+npx wrangler d1 execute LIVESTOCK_DB --file=./clear_ip_data.sql
+```

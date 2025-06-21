@@ -101,8 +101,8 @@ router.get('/api/region', async (request, env) => {
 
 // Handle API routes for reports
 router.get('/api/reports', async (request, env) => {
-  // Get client's location to sort reports by proximity
-  const clientIP = request.headers.get('CF-Connecting-IP');
+  // Get client's location to sort reports by proximity, but only use if provided in the request
+  // and don't store it anywhere
   const geoData = request.cf ? {
     latitude: request.cf.latitude,
     longitude: request.cf.longitude,
@@ -217,7 +217,7 @@ router.post('/api/reports', async (request, env) => {
       });
     }
     
-    // Store in D1 database
+    // Store in D1 database without storing any IP information
     await env.LIVESTOCK_DB.prepare(`
       INSERT INTO reports (id, type, count, comment, longitude, latitude, timestamp, reporter_ip, icon)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -229,39 +229,79 @@ router.post('/api/reports', async (request, env) => {
       reportData.longitude,
       reportData.latitude,
       reportData.timestamp,
-      clientIP,
+      null, // Don't store IP addresses at all for privacy
       reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png'
     ).run();
     
     // Process media file if provided
     let mediaUrl = null;
     if (mediaFile) {
-      // Generate a unique filename
-      const fileExt = mediaFile.name.split('.').pop();
-      const fileName = `${reportId}.${fileExt}`;
+      // Validate file size (max 5MB)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      let fileSize = 0;
       
-      // Upload to R2
-      await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.stream(), {
-        httpMetadata: {
-          contentType: mediaFile.type,
+      try {
+        // Get file size by cloning the stream, reading it, and then resetting
+        const fileBlob = await mediaFile.arrayBuffer();
+        fileSize = fileBlob.byteLength;
+        
+        if (fileSize > MAX_FILE_SIZE) {
+          return new Response(JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
-      });
-      
-      // Generate the public URL
-      mediaUrl = `https://media.pigmap.org/${fileName}`;
-      
-      // Store media reference in D1
-      await env.LIVESTOCK_DB.prepare(`
-        INSERT INTO media (report_id, url, content_type)
-        VALUES (?, ?, ?)
-      `).bind(
-        reportId,
-        mediaUrl,
-        mediaFile.type
-      ).run();
-      
-      // Add the media URL to the report
-      reportData.imageUrl = mediaUrl;
+        
+        // Validate file type (only images and videos)
+        const allowedTypes = [
+          'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+          'video/mp4', 'video/quicktime', 'video/webm'
+        ];
+        
+        if (!allowedTypes.includes(mediaFile.type)) {
+          return new Response(JSON.stringify({ 
+            error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP) and videos (MP4, QuickTime, WebM) are allowed.' 
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // Generate a unique filename
+        const fileExt = mediaFile.name.split('.').pop();
+        const fileName = `${reportId}.${fileExt}`;
+        
+        // Upload to R2
+        await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.type.startsWith('image/') ? 
+          fileBlob : 
+          mediaFile.stream(), { // Only use blob for images to validate them
+          httpMetadata: {
+            contentType: mediaFile.type,
+          }
+        });
+        
+        // Generate the public URL
+        mediaUrl = `https://media.pigmap.org/${fileName}`;
+        
+        // Store media reference in D1
+        await env.LIVESTOCK_DB.prepare(`
+          INSERT INTO media (report_id, url, content_type)
+          VALUES (?, ?, ?)
+        `).bind(
+          reportId,
+          mediaUrl,
+          mediaFile.type
+        ).run();
+        
+        // Add the media URL to the report
+        reportData.imageUrl = mediaUrl;
+      } catch (mediaError) {
+        console.error('Error processing media:', mediaError);
+        return new Response(JSON.stringify({ error: 'Failed to process media file' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
     
     // Update Durable Object for real-time updates
@@ -414,9 +454,8 @@ router.post('/api/reports/:id/comments', async (request, env) => {
     const commentData = JSON.parse(commentJson);
     const commentId = uuidv4();
     const timestamp = Date.now();
-    const clientIP = request.headers.get('CF-Connecting-IP');
     
-    // Store comment in database
+    // Store comment in database without IP information
     await env.LIVESTOCK_DB.prepare(`
       INSERT INTO comments (id, report_id, content, timestamp, commenter_ip)
       VALUES (?, ?, ?, ?, ?)
@@ -425,7 +464,7 @@ router.post('/api/reports/:id/comments', async (request, env) => {
       id,
       commentData.content,
       timestamp,
-      clientIP
+      null // Don't store IP addresses for privacy
     ).run();
     
     // Process media file if provided

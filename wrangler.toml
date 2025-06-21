@@ -4,7 +4,7 @@ name = "pigmap"
 main = "src/index.js"
 compatibility_date = "2024-06-01"
 
-workers_dev = true  # Enable the workers.dev subdomain for development
+workers_dev = false  # Disable the workers.dev subdomain for production
 routes = [
   # Main domain routes
   { pattern = "pigmap.org/*", zone_name = "pigmap.org" },
