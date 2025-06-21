@@ -21,26 +21,17 @@ routes = [
 [[r2_buckets]]
 binding = "LIVESTOCK_MEDIA"
 bucket_name = "livestock-media"
-preview_bucket_name = "livestock-media-preview"
 
 # KV Namespace for Configuration
 [[kv_namespaces]]
 binding = "PIGMAP_CONFIG"
-id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your KV namespace ID
-preview_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your preview KV namespace ID
+id = "96dd87122a134b75a59e94a106d2b9ac"
 
 # D1 Database for Reports
 [[d1_databases]]
 binding = "LIVESTOCK_DB"
 database_name = "livestock"
-database_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your D1 database ID
-preview_database_id = "xxxxxxxxxxxxxxxxxxxxxxxx"  # Replace with your preview D1 database ID
-
-# Service bindings for static assets
-[[services]]
-binding = "ASSETS"
-service = "pigmap-assets"
-environment = "production"
+database_id = "11a70f2e-831a-4fdc-8447-d891fdf950b7"
 
 # Durable Object for real-time updates
 [[durable_objects.bindings]]
