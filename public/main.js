@@ -1,102 +1,117 @@
-import Map from 'ol/Map.js';
-import TileLayer from 'ol/layer/Tile.js';
-import View from 'ol/View.js';
-import {fromLonLat, toLonLat} from 'ol/proj.js';
-import VectorLayer from 'ol/layer/Vector.js';
-import VectorSource from 'ol/source/Vector.js';
-import Feature from 'ol/Feature.js';
-import Point from 'ol/geom/Point.js';
-import {Circle, Fill, Stroke, Style, Text, Icon} from 'ol/style.js';
-import Overlay from 'ol/Overlay.js';
-import Geolocation from 'ol/Geolocation.js';
-// Use local UUIDv4 function
-const uuidv4 = () => {
+// PigMap.org - Main JavaScript File
+// This file contains helper functions for the Leaflet-based map application
+
+// Utility Functions
+function capitalizeFirstLetter(string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Format timestamp to readable date/time
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+}
+
+// Check if the browser supports geolocation
+function supportsGeolocation() {
+  return 'geolocation' in navigator;
+}
+
+// Generate UUID v4
+function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
-};
-import XYZ from 'ol/source/XYZ.js';
-import Select from 'ol/interaction/Select.js';
-import {pointerMove} from 'ol/events/condition.js';
-// Import GSAP for animations
-import { gsap } from '/lib/gsap/gsap-core.js';
+}
 
-// GSAP Animation Utilities
-// These functions will be used throughout the application for smooth animations
-const animations = {
-  // Fade in animation for elements
-  fadeIn: (element, duration = 0.5, delay = 0) => {
-    return gsap.fromTo(element, 
-      { opacity: 0 }, 
-      { opacity: 1, duration, delay, ease: "power2.out" }
-    );
-  },
-  
-  // Fade out animation for elements
-  fadeOut: (element, duration = 0.3, delay = 0) => {
-    return gsap.to(element, { opacity: 0, duration, delay, ease: "power2.in" });
-  },
-  
-  // Slide in from right animation (for panels, forms, etc.)
-  slideInRight: (element, duration = 0.5, delay = 0) => {
-    return gsap.fromTo(element, 
-      { x: '100%', opacity: 0 }, 
-      { x: '0%', opacity: 1, duration, delay, ease: "power2.out" }
-    );
-  },
-  
-  // Slide out to right animation
-  slideOutRight: (element, duration = 0.4, delay = 0) => {
-    return gsap.to(element, { x: '100%', opacity: 0, duration, delay, ease: "power2.in" });
-  },
-  
-  // Popup entrance animation
-  popupShow: (element, duration = 0.4) => {
-    return gsap.fromTo(element, 
-      { scale: 0.8, opacity: 0 }, 
-      { scale: 1, opacity: 1, duration, ease: "back.out(1.7)" }
-    );
-  },
-  
-  // Popup exit animation
-  popupHide: (element, duration = 0.3) => {
-    return gsap.to(element, { scale: 0.8, opacity: 0, duration, ease: "power2.in" });
-  },
-  
-  // Button pulse animation (for attention)
-  buttonPulse: (element) => {
-    return gsap.fromTo(element, 
-      { scale: 1 }, 
-      { 
-        scale: 1.05, 
-        duration: 0.4, 
-        ease: "power2.inOut",
-        repeat: 1, 
-        yoyo: true 
-      }
-    );
-  },
-  
-  // Map marker entrance animation
-  markerAdd: (element, duration = 0.5) => {
-    return gsap.fromTo(element, 
-      { scale: 0, opacity: 0 }, 
-      { scale: 1, opacity: 1, duration, ease: "elastic.out(1, 0.5)" }
-    );
-  },
-  
-  // Notification entrance animation
-  notificationShow: (element, duration = 0.5, delay = 0) => {
-    return gsap.fromTo(element, 
-      { y: -50, opacity: 0 }, 
-      { y: 0, opacity: 1, duration, delay, ease: "power3.out" }
-    );
-  },
-  
-  // Notification exit animation
-  notificationHide: (element, duration = 0.4) => {
-    return gsap.to(element, { y: -50, opacity: 0, duration, ease: "power3.in" });
+// Format address for display
+function formatAddress(address) {
+  if (!address) return '';
+  // Remove any excessively long components
+  return address.split(',').slice(0, 3).join(', ');
+}
+
+// Handle file uploads with preview
+function setupFileUploadPreview(fileInput, previewElement) {
+  fileInput.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) {
+      previewElement.style.display = 'none';
+      return;
+    }
+    
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewElement.src = e.target.result;
+        previewElement.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else if (file.type.startsWith('video/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewElement.src = e.target.result;
+        previewElement.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      previewElement.style.display = 'none';
+    }
+  });
+}
+
+// Debounce function to limit how often a function can be called
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Create notification popup
+function showNotification(message, type = 'info') {
+  const notificationContainer = document.getElementById('notification-container');
+  if (!notificationContainer) {
+    // Create notification container if it doesn't exist
+    const container = document.createElement('div');
+    container.id = 'notification-container';
+    container.style.position = 'fixed';
+    container.style.top = '20px';
+    container.style.right = '20px';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
   }
+  
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  
+  document.getElementById('notification-container').appendChild(notification);
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    notification.classList.add('hide');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 5000);
+}
+
+// Export functions for use in other files
+window.PigMap = {
+  capitalizeFirstLetter,
+  formatTimestamp,
+  supportsGeolocation,
+  uuidv4,
+  formatAddress,
+  setupFileUploadPreview,
+  debounce,
+  showNotification
 };
 
 // Internationalization support

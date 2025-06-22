@@ -57,6 +57,18 @@
       max-width: 300px;
     }
     
+    /* Ensure header doesn't overlap with map controls */
+    /* Ensure header doesn't overlap with map controls */
+    .leaflet-control-container .leaflet-top.leaflet-left {
+      top: 70px; /* Give space for header */
+    }
+    
+    /* Custom positioning for search control */
+    .leaflet-control-geocoder {
+      margin-top: 10px !important;
+      clear: both;
+    }
+    
     .header h1 {
       margin: 0;
       font-family: 'Climate Crisis', display;
@@ -66,8 +78,8 @@
     
     .controls {
       position: absolute;
-      bottom: 100px;
-      right: 20px;
+      bottom: 25px;
+      right: 10px;
       z-index: 1000;
       display: flex;
       flex-direction: column;
@@ -98,7 +110,7 @@
       position: absolute;
       top: 10px;
       right: 10px;
-      z-index: 1000;
+      z-index: 1001; /* Higher than other controls */
       background-color: rgba(255, 255, 255, 0.9);
       padding: 10px;
       border-radius: 4px;
@@ -131,19 +143,26 @@
     }
     
     .icon-option {
-      width: 40px;
-      height: 40px;
-      padding: 5px;
+      width: 32px;
+      height: 32px;
+      padding: 3px;
       border: 1px solid transparent;
       border-radius: 4px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
     
     .icon-option:hover {
       background-color: #f0f0f0;
+    }
+    
+    .icon-option img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
     
     .icon-option.selected {
@@ -215,6 +234,199 @@
       margin-top: 10px;
       border-radius: 4px;
     }
+    
+    .location-details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 5px;
+    }
+    
+    .coordinates {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    
+    .btn-small {
+      padding: 5px 8px;
+      font-size: 0.8rem;
+    }
+    
+    /* Comment section styles */
+    .comments-section {
+      margin-top: 15px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 10px;
+    }
+    
+    .comment-item {
+      padding: 8px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    
+    .comment-meta {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .comment-form {
+      margin-top: 10px;
+    }
+    
+    .comment-form textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-family: 'Chocolate Classical Sans', system-ui, sans-serif;
+      resize: vertical;
+    }
+    
+    .comment-form .media-upload {
+      margin-bottom: 8px;
+    }
+    
+    /* Category description style */
+    .category-description {
+      display: block;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 3px;
+      font-style: italic;
+    }
+    
+    /* Resources modal styles */
+    .resource-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 10px;
+    }
+    
+    .resource-item {
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 15px;
+    }
+    
+    .resource-item h4 {
+      margin: 0 0 8px 0;
+      color: var(--primary-green);
+    }
+    
+    .resource-item p {
+      margin: 0 0 10px 0;
+      font-size: 0.9rem;
+    }
+    
+    .resource-link {
+      display: inline-block;
+      padding: 5px 10px;
+      background-color: var(--light-green);
+      color: var(--dark-green);
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+    
+    .resource-link:hover {
+      background-color: var(--primary-green);
+      color: white;
+    }
+    
+    /* About section tabs */
+    .tab-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .tab-navigation {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab-button {
+      padding: 8px 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      border-bottom: 3px solid transparent;
+    }
+    
+    .tab-button.active {
+      border-bottom-color: var(--primary-green);
+      color: var(--primary-green);
+      font-weight: bold;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 10px 0;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Modal blockquote style */
+    blockquote {
+      margin: 15px 0;
+      padding: 10px 15px;
+      border-left: 3px solid var(--primary-green);
+      background-color: rgba(191, 244, 205, 0.2);
+      font-style: italic;
+    }
+    
+    /* Privacy notification */
+    #notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .notification {
+      background-color: rgba(255, 255, 255, 0.9);
+      color: var(--text-dark);
+      padding: 12px 15px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      max-width: 300px;
+      border-left: 4px solid var(--primary-green);
+      animation: slideIn 0.3s ease-out forwards;
+    }
+    
+    .notification.error {
+      border-left-color: var(--primary-red);
+    }
+    
+    .notification.warning {
+      border-left-color: #FFC107;
+    }
+    
+    .notification.hide {
+      animation: slideOut 0.3s ease-in forwards;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -235,11 +447,9 @@
       <div class="form-group">
         <label for="type">Type:</label>
         <select id="type" required>
-          <option value="sighting">Sighting</option>
-          <option value="tracks">Tracks</option>
-          <option value="damage">Property Damage</option>
-          <option value="other">Other</option>
+          <!-- Categories will be loaded dynamically -->
         </select>
+        <small class="category-description" id="category-description"></small>
       </div>
       <div class="form-group">
         <label for="count">How many?</label>
@@ -250,13 +460,21 @@
         <textarea id="comment" rows="3"></textarea>
       </div>
       <div class="form-group">
+        <label for="location">Location:</label>
+        <input type="text" id="location" readonly>
+        <div class="location-details" id="location-details">
+          <small class="coordinates">Lat: <span id="lat-display">--</span>, Lng: <span id="lng-display">--</span></small>
+          <button type="button" id="update-location-btn" class="btn btn-small">Update Location</button>
+        </div>
+      </div>
+      <div class="form-group">
         <label for="media">Photo/Video (optional):</label>
         <input type="file" id="media" accept="image/*,video/*">
       </div>
       <div class="form-group">
         <label for="icon">Icon:</label>
         <div class="icon-select-container">
-          <select id="icon" style="display:none;">
+          <select id="icon" class="icon-select">
             <!-- Icons will be loaded dynamically -->
           </select>
           <div class="icon-preview" id="icon-preview">
@@ -265,7 +483,7 @@
         </div>
       </div>
       <div class="form-actions">
-        <button type="button" id="cancel-btn" class="btn" style="background-color: #999;">Cancel</button>
+        <button type="button" id="cancel-btn" class="btn cancel-btn">Cancel</button>
         <button type="submit" class="btn">Submit</button>
       </div>
     </form>
@@ -283,18 +501,73 @@
   </div>
 
   <script>
+    // Categories with dual meanings for reports
+    const reportCategories = [
+      { id: "feral", label: "Feral Hog", description: "Wild/feral hog sighting", icon: "local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "patrol", label: "Territory Patrol", description: "Regular movement patterns", icon: "radar_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "tracking", label: "Tracking Activity", description: "Evidence of surveillance", icon: "visibility_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "equipment", label: "Equipment Sighting", description: "Specialized gear or vehicles", icon: "front_loader_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "checkpoint", label: "Fixed Location", description: "Stationary presence", icon: "not_listed_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "damage", label: "Property Impact", description: "Damage to property or land", icon: "destruction_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "group", label: "Group Activity", description: "Multiple subjects working together", icon: "groups_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" },
+      { id: "nighttime", label: "Night Activity", description: "Activity during darkness", icon: "nights_stay_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png" }
+    ];
+    
     // Initialize map
     const map = L.map('map').setView([39.8283, -98.5795], 5);
     
-    // Add tile layer (OpenStreetMap)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    // Define base map layers
+    const baseMaps = {
+      // Standard OpenStreetMap
+      "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }),
+      
+      // OpenStreetMap multilingual (with local names)
+      "OpenStreetMap Localized": L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }),
+      
+      // USGS Topo
+      "USGS Topographic": L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'USGS',
+        maxZoom: 16
+      }),
+      
+      // Stamen Terrain
+      "Terrain": L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}{r}.png', {
+        attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18
+      }),
+      
+      // Night Earth view (NASA)
+      "Night Earth": L.tileLayer('https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default/{time}/{tilematrixset}{maxZoom}/{z}/{y}/{x}.{format}', {
+        attribution: 'Imagery provided by services from the Global Imagery Browse Services (GIBS), operated by the NASA/GSFC/Earth Science Data and Information System (<a href="https://earthdata.nasa.gov">ESDIS</a>) with funding provided by NASA/HQ.',
+        maxZoom: 8,
+        time: '',
+        tilematrixset: 'GoogleMapsCompatible_Level',
+        format: 'jpg'
+      }),
+      
+      // Satellite (ESRI)
+      "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxZoom: 18
+      })
+    };
+    
+    // Add default map layer
+    baseMaps["OpenStreetMap"].addTo(map);
+    
+    // Add layer control
+    L.control.layers(baseMaps, {}, {position: 'bottomleft'}).addTo(map);
     
     // Add Nominatim search control
     const geocoder = L.Control.geocoder({
       defaultMarkGeocode: false,
-      position: 'topleft',
+      position: 'topright',
       placeholder: 'Search for a location...',
       errorMessage: 'Nothing found.',
       geocoder: L.Control.Geocoder.nominatim({
@@ -307,14 +580,25 @@
     
     geocoder.on('markgeocode', function(e) {
       const bbox = e.geocode.bbox;
+      const center = e.geocode.center;
+      
+      // Create temporary polygon to show search area
       const poly = L.polygon([
         bbox.getSouthEast(),
         bbox.getNorthEast(),
         bbox.getNorthWest(),
         bbox.getSouthWest()
       ]).addTo(map);
+      
       map.fitBounds(poly.getBounds());
-      poly.remove();
+      
+      // Remove the polygon after a delay
+      setTimeout(() => poly.remove(), 2000);
+      
+      // If the report form is open, update the location
+      if (reportForm.style.display === 'block') {
+        updateReportLocation(center, e.geocode.name);
+      }
     });
     
     // Create a layer group for reports
@@ -328,18 +612,88 @@
     const submitForm = document.getElementById('submit-report');
     const iconSelect = document.getElementById('icon');
     const iconPreview = document.getElementById('icon-preview');
+    const locationInput = document.getElementById('location');
+    const latDisplay = document.getElementById('lat-display');
+    const lngDisplay = document.getElementById('lng-display');
+    const updateLocationBtn = document.getElementById('update-location-btn');
     
-    // Current position marker
+    // Current position marker and temporary markers
     let currentPositionMarker = null;
+    let accuracyCircle = null;
+    let tempMarker = null;
     let reportPosition = null;
+    let locationAddress = null;
     
     // Show report form
     reportBtn.addEventListener('click', () => {
       reportForm.style.display = 'block';
       
       // Use current map center as default position
-      reportPosition = map.getCenter();
+      const center = map.getCenter();
+      updateReportLocation(center);
+      
+      // If the user clicks on the map while the form is open, update the location
+      map.once('click', (e) => {
+        updateReportLocation(e.latlng);
+      });
     });
+    
+    // Update location button
+    updateLocationBtn.addEventListener('click', () => {
+      // Hide the form temporarily to see the map
+      reportForm.style.display = 'none';
+      
+      // Show a message to click on the map
+      alert('Click on the map to set the report location');
+      
+      // Once the user clicks on the map, update the location and show the form again
+      map.once('click', (e) => {
+        updateReportLocation(e.latlng);
+        reportForm.style.display = 'block';
+      });
+    });
+    
+    // Function to update report location display
+    function updateReportLocation(latlng, address = null) {
+      // Update the position
+      reportPosition = latlng;
+      
+      // Update coordinate display
+      latDisplay.textContent = latlng.lat.toFixed(6);
+      lngDisplay.textContent = latlng.lng.toFixed(6);
+      
+      // If an address was provided, use it
+      if (address) {
+        locationAddress = address;
+        locationInput.value = address;
+      } else {
+        // Otherwise try to reverse geocode
+        locationAddress = null;
+        locationInput.value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+        
+        // Try to get the address via reverse geocoding
+        L.Control.Geocoder.nominatim().reverse(latlng, map.getZoom(), results => {
+          if (results && results.length > 0) {
+            locationAddress = results[0].name;
+            locationInput.value = locationAddress;
+          }
+        });
+      }
+      
+      // Add or move temporary marker
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+      }
+      
+      tempMarker = L.marker(latlng, {
+        icon: L.icon({
+          iconUrl: '/icons/pin_drop_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -32]
+        })
+      }).addTo(map).bindPopup('Report location').openPopup();
+    }
     
     // Hide report form
     cancelBtn.addEventListener('click', () => {
@@ -348,29 +702,43 @@
     
     // Locate user
     locateBtn.addEventListener('click', () => {
-      map.locate({setView: true, maxZoom: 16});
+      map.locate({setView: true, maxZoom: 16, enableHighAccuracy: true});
     });
     
     // Handle location found
     map.on('locationfound', (e) => {
+      // Clear existing location markers
       if (currentPositionMarker) {
         map.removeLayer(currentPositionMarker);
       }
       
+      if (accuracyCircle) {
+        map.removeLayer(accuracyCircle);
+      }
+      
       // Create a marker with accuracy circle
-      currentPositionMarker = L.marker(e.latlng).addTo(map)
-        .bindPopup("You are within " + Math.round(e.accuracy) + " meters of this point").openPopup();
+      currentPositionMarker = L.marker(e.latlng, {
+        icon: L.icon({
+          iconUrl: '/icons/my_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        })
+      }).addTo(map)
+        .bindPopup(`You are within ${Math.round(e.accuracy)} meters of this point`).openPopup();
       
       // Add accuracy circle
-      const accuracyCircle = L.circle(e.latlng, {
-        color: 'blue',
-        fillColor: '#3388ff',
+      accuracyCircle = L.circle(e.latlng, {
+        color: '#4a8f5c',
+        fillColor: '#bff4cd',
         fillOpacity: 0.2,
         radius: e.accuracy
       }).addTo(map);
       
-      // Update report position to use current location
-      reportPosition = e.latlng;
+      // If the report form is open, update the location
+      if (reportForm.style.display === 'block') {
+        updateReportLocation(e.latlng);
+      }
     });
     
     // Handle location error
@@ -400,7 +768,8 @@
         longitude: reportPosition.lng,
         latitude: reportPosition.lat,
         timestamp: Date.now(),
-        icon
+        icon,
+        address: locationAddress || locationInput.value
       };
       
       try {
@@ -438,136 +807,166 @@
       }
     });
     
-    // Load available icons
-    async function loadIcons() {
-      try {
-        const response = await fetch('/api/icons');
-        const icons = await response.json();
-        
-        // Update hidden select
-        iconSelect.innerHTML = '';
-        
-        // Update visual icon selector
-        const iconPreview = document.getElementById('icon-preview');
-        iconPreview.innerHTML = '';
-        
-        icons.forEach(icon => {
-          // Add to hidden select
-          const option = document.createElement('option');
-          option.value = icon;
-          option.textContent = icon.replace(/_/g, ' ').replace(/\.png$/, '');
-          iconSelect.appendChild(option);
+    // Security and anonymity enhancements
+    const securityFeatures = {
+      // Remove all metadata from images before upload
+      sanitizeMedia: function(file) {
+        return new Promise((resolve) => {
+          if (!file || !file.type.startsWith('image/')) {
+            resolve(file); // Not an image, return as is
+            return;
+          }
           
-          // Add to visual icon selector
-          const iconOption = document.createElement('div');
-          iconOption.className = 'icon-option';
-          iconOption.dataset.icon = icon;
+          const img = new Image();
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
           
-          const img = document.createElement('img');
-          img.src = `/icons/${icon}`;
-          img.alt = icon.replace(/_/g, ' ').replace(/\.png$/, '');
-          img.width = 32;
-          img.height = 32;
-          
-          iconOption.appendChild(img);
-          iconPreview.appendChild(iconOption);
-          
-          // Add click handler
-          iconOption.addEventListener('click', () => {
-            // Remove selected class from all icons
-            document.querySelectorAll('.icon-option').forEach(el => {
-              el.classList.remove('selected');
-            });
+          img.onload = function() {
+            // Create a clean canvas with the image
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
             
-            // Add selected class to clicked icon
-            iconOption.classList.add('selected');
-            
-            // Update the hidden select
-            iconSelect.value = icon;
+            // Convert to blob with no metadata
+            canvas.toBlob((blob) => {
+              // Create a new file object without metadata
+              const sanitizedFile = new File([blob], 'image.jpg', {
+                type: 'image/jpeg',
+                lastModified: new Date().getTime()
+              });
+              resolve(sanitizedFile);
+            }, 'image/jpeg', 0.75);
+          };
+          
+          img.src = URL.createObjectURL(file);
+        });
+      },
+      
+      // Generate a random ID for reports that doesn't use device info
+      generateAnonymousId: function() {
+        const randomBytes = new Uint8Array(16);
+        window.crypto.getRandomValues(randomBytes);
+        return Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      },
+      
+      // Set up enhanced privacy by default
+      setupPrivacyMode: function() {
+        // Always enable privacy mode - clear data on exit
+        window.addEventListener('beforeunload', securityFeatures.clearLocalData);
+        
+        // Also sanitize all image uploads automatically
+        const mediaInput = document.getElementById('media');
+        if (mediaInput) {
+          mediaInput.addEventListener('change', async function() {
+            if (this.files.length > 0) {
+              const sanitizedFile = await securityFeatures.sanitizeMedia(this.files[0]);
+              
+              // Create a new FileList containing only the sanitized file
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(sanitizedFile);
+              this.files = dataTransfer.files;
+              
+              console.log('Media metadata stripped for privacy');
+            }
           });
-        });
-        
-        // Set default icon
-        const defaultIcon = 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
-        iconSelect.value = defaultIcon;
-        
-        // Select the default icon in the visual selector
-        const defaultIconOption = document.querySelector(`.icon-option[data-icon="${defaultIcon}"]`);
-        if (defaultIconOption) {
-          defaultIconOption.classList.add('selected');
         }
-      } catch (error) {
-        console.error("Error loading icons:", error);
-      }
-    }
-    
-    // Load reports
-    async function loadReports() {
-      try {
-        const response = await fetch('/api/reports');
-        const reports = await response.json();
+      },
+      
+      clearLocalData: function() {
+        localStorage.clear();
+        sessionStorage.clear();
         
-        // Clear existing reports
-        reportsLayer.clearLayers();
-        
-        // Add reports to map
-        reports.forEach(report => {
-          addReportToMap(report);
+        // Clear all cookies
+        document.cookie.split(";").forEach(function(c) {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
-      } catch (error) {
-        console.error("Error loading reports:", error);
       }
-    }
+    };
     
-    // Add a report to the map
-    function addReportToMap(report) {
-      const position = L.latLng(report.latitude, report.longitude);
+    // Civil rights documents presented as conservation information
+    const resourceDocuments = {
+      fourth_amendment: {
+        title: "Property Rights & Wildlife Management",
+        content: `
+          <h3>Fourth Amendment: Protection Against Unreasonable Searches and Seizures</h3>
+          <blockquote>"The right of the people to be secure in their persons, houses, papers, and effects, against unreasonable searches and seizures, shall not be violated, and no Warrants shall issue, but upon probable cause, supported by Oath or affirmation, and particularly describing the place to be searched, and the persons or things to be seized."</blockquote>
+          
+          <h4>Practical Applications for Land Managers:</h4>
+          <ul>
+            <li>Government agents cannot search your property without a warrant or an exception</li>
+            <li>Warrants must specifically describe what they're looking for</li>
+            <li>You have the right to refuse consent to warrantless searches</li>
+            <li>Evidence obtained through illegal searches can't be used against you</li>
+            <li>Your electronic devices are protected from warrantless searches</li>
+          </ul>
+          
+          <p>Understanding these protections helps you manage your land effectively while maintaining your constitutional rights.</p>
+        `
+      },
+      first_amendment: {
+        title: "Documentation Rights for Wildlife Management",
+        content: `
+          <h3>First Amendment: Freedom of Speech, Press, Assembly</h3>
+          <blockquote>"Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof; or abridging the freedom of speech, or of the press; or the right of the people peaceably to assemble, and to petition the Government for a redress of grievances."</blockquote>
+          
+          <h4>Practical Applications for Documentation:</h4>
+          <ul>
+            <li>You have the right to record activities on public property</li>
+            <li>You can document wildlife management activities by government agencies</li>
+            <li>You can share information about wildlife sightings publicly</li>
+            <li>You can gather with others to discuss conservation strategies</li>
+            <li>You can petition government agencies about wildlife management policies</li>
+          </ul>
+          
+          <p>These freedoms ensure transparency in conservation efforts and allow communities to work together effectively.</p>
+        `
+      },
+      due_process: {
+        title: "Legal Frameworks for Rural Community Protection",
+        content: `
+          <h3>Fifth and Fourteenth Amendments: Due Process and Equal Protection</h3>
+          <blockquote>"No person shall... be deprived of life, liberty, or property, without due process of law."</blockquote>
+          <blockquote>"No State shall... deny to any person within its jurisdiction the equal protection of the laws."</blockquote>
+          
+          <h4>Practical Applications for Rural Communities:</h4>
+          <ul>
+            <li>Government must follow established procedures before taking action that affects your rights</li>
+            <li>You are entitled to notice and a hearing before property restrictions</li>
+            <li>Law enforcement must treat all communities equally</li>
+            <li>Rural areas deserve the same legal protections as urban areas</li>
+            <li>You have the right to challenge government actions that unfairly target your community</li>
+          </ul>
+          
+          <p>These protections ensure fair treatment for all communities engaged in wildlife management and conservation.</p>
+        `
+      }
+    };
+
+    // Function to show resource document
+    function showResourceDocument(resourceId) {
+      const resource = resourceDocuments[resourceId];
+      if (!resource) return;
       
-      // Create icon
-      const reportIcon = L.icon({
-        iconUrl: `/icons/${report.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png'}`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16]
-      });
+      const modalContent = document.createElement('div');
+      modalContent.innerHTML = resource.content;
       
-      // Create marker
-      const marker = L.marker(position, {
-        icon: reportIcon,
-        title: report.type
-      }).addTo(reportsLayer);
-      
-      // Create popup content
-      let popupContent = `
-        <div class="popup-content">
-          <h3>${capitalizeFirstLetter(report.type)}</h3>
-          <div class="meta">
-            ${formatTimestamp(report.timestamp)} · Count: ${report.count || 1}
-          </div>
-          ${report.comment ? `<p>${report.comment}</p>` : ''}
-          ${report.imageUrl ? `<img src="${report.imageUrl}" alt="Report Image">` : ''}
+      const modal = document.createElement('div');
+      modal.className = 'resource-modal';
+      modal.innerHTML = `
+        <div class="resource-modal-header">
+          <h2>${resource.title}</h2>
+          <button class="close-modal">&times;</button>
         </div>
+        <div class="resource-modal-body"></div>
       `;
       
-      // Bind popup to marker
-      marker.bindPopup(popupContent);
+      modal.querySelector('.resource-modal-body').appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      modal.querySelector('.close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
     }
-    
-    // Helper function to capitalize first letter
-    function capitalizeFirstLetter(string) {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-    
-    // Helper function to format timestamp
-    function formatTimestamp(timestamp) {
-      const date = new Date(timestamp);
-      return date.toLocaleString();
-    }
-    
-    // Initialize
-    loadIcons();
-    loadReports();
-    loadLanguages(); // Load languages and translations
     
     // Set up WebSocket for real-time updates
     function setupWebSocket() {
@@ -585,8 +984,12 @@
           const data = JSON.parse(event.data);
           
           if (data.type === 'comment') {
-            // Handle new comment
+            // Handle new comment - refresh comments if popup for this report is open
             console.log('New comment:', data);
+            const openPopup = document.querySelector(`.comments-list[data-report-id="${data.reportId}"]`);
+            if (openPopup) {
+              loadComments(data.reportId);
+            }
           } else {
             // Handle new report
             console.log('New report:', data);
@@ -608,59 +1011,14 @@
       };
     }
     
-    // Set up WebSocket
+    // Initialize WebSocket
     setupWebSocket();
     
-    // Icon selection logic
-    iconSelect.addEventListener('change', (e) => {
-      const selectedIcon = e.target.value;
-      
-      // Update icon preview
-      const iconOptions = document.querySelectorAll('.icon-option');
-      iconOptions.forEach(option => {
-        option.classList.remove('selected');
-        if (option.dataset.icon === selectedIcon) {
-          option.classList.add('selected');
-        }
-      });
-    });
-    
-    // Load available icons for selection
-    async function loadAvailableIcons() {
-      try {
-        const response = await fetch('/api/icons');
-        const icons = await response.json();
-        
-        // Clear existing options
-        iconPreview.innerHTML = '';
-        
-        // Add new options
-        icons.forEach(icon => {
-          const div = document.createElement('div');
-          div.className = 'icon-option';
-          div.dataset.icon = icon;
-          div.style.backgroundImage = `url('/icons/${icon}')`;
-          div.title = icon.replace(/_/g, ' ').replace(/\.png$/, '');
-          
-          // Select default icon
-          if (icon === 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png') {
-            div.classList.add('selected');
-          }
-          
-          iconPreview.appendChild(div);
-        });
-      } catch (error) {
-        console.error("Error loading available icons:", error);
-      }
-    }
-    
-    // Load available icons for selection
-    loadAvailableIcons();
-    
-    // Load translations
+    // Language and translation functions
     let currentLanguage = 'en';
     let translations = {};
     
+    // Load translations for current language
     async function loadLanguages() {
       try {
         const response = await fetch('/api/translations');
@@ -675,20 +1033,25 @@
             const option = document.createElement('option');
             option.value = lang.code;
             option.textContent = lang.name || lang.code;
-            if (lang.recommended) {
-              option.textContent += ' ★';
-            }
             languageSelect.appendChild(option);
           });
           
-          // Set default language
-          const userLang = navigator.language.split('-')[0];
-          if (data.languages.some(l => l.code === userLang)) {
-            languageSelect.value = userLang;
-            currentLanguage = userLang;
+          // Check for stored language preference
+          const storedLang = localStorage.getItem('pigmap-language');
+          
+          // Set default language (stored preference, browser language, or fallback to English)
+          if (storedLang && data.languages.some(l => l.code === storedLang)) {
+            languageSelect.value = storedLang;
+            currentLanguage = storedLang;
           } else {
-            languageSelect.value = 'en';
-            currentLanguage = 'en';
+            const userLang = navigator.language.split('-')[0];
+            if (data.languages.some(l => l.code === userLang)) {
+              languageSelect.value = userLang;
+              currentLanguage = userLang;
+            } else {
+              languageSelect.value = 'en';
+              currentLanguage = 'en';
+            }
           }
           
           // Load translations for default language
@@ -697,6 +1060,7 @@
           // Add event listener for language change
           languageSelect.addEventListener('change', async (e) => {
             currentLanguage = e.target.value;
+            localStorage.setItem('pigmap-language', currentLanguage);
             await loadTranslationsForLanguage(currentLanguage);
             updateUITranslations();
           });
@@ -716,31 +1080,97 @@
         updateUITranslations();
       } catch (error) {
         console.error(`Error loading translations for ${langCode}:`, error);
+        // Fallback to English
+        translations = {};
       }
     }
     
     function updateUITranslations() {
       // Update static UI elements
       document.querySelector('.header h1').textContent = translations.appTitle || 'PigMap.org';
-      reportBtn.textContent = translations.reportBtn || 'Report';
-      locateBtn.textContent = translations.locateBtn || 'Locate Me';
+      document.getElementById('report-btn').textContent = translations.reportBtn || 'Report Location';
+      document.getElementById('locate-btn').textContent = translations.locateBtn || 'Find My Location';
       
       // Update form elements
-      document.querySelector('#report-form h2').textContent = translations.reportFormTitle || 'Report Livestock';
+      document.querySelector('#report-form h2').textContent = translations.reportFormTitle || 'Report Location';
       document.querySelector('label[for="type"]').textContent = (translations.typeLabel || 'Type') + ':';
       document.querySelector('label[for="count"]').textContent = (translations.countLabel || 'How many?') + ':';
       document.querySelector('label[for="comment"]').textContent = (translations.commentLabel || 'Comments') + ':';
+      document.querySelector('label[for="location"]').textContent = (translations.locationLabel || 'Location') + ':';
       document.querySelector('label[for="media"]').textContent = (translations.mediaLabel || 'Photo/Video (optional)') + ':';
-      document.querySelector('.icon-select-container > label').textContent = (translations.iconLabel || 'Icon') + ':';
+      document.querySelector('label[for="icon"]').textContent = (translations.iconLabel || 'Icon') + ':';
       
       // Update buttons
-      cancelBtn.textContent = translations.cancelBtn || 'Cancel';
+      document.getElementById('cancel-btn').textContent = translations.cancelBtn || 'Cancel';
       document.querySelector('#submit-report button[type="submit"]').textContent = translations.submitBtn || 'Submit';
+      document.getElementById('update-location-btn').textContent = translations.updateLocationBtn || 'Update Location';
+      
+      // Update language selector label
+      document.querySelector('label[for="language-select"]').textContent = translations.languageLabel || 'Language:';
+      
+      // Update geocoder placeholder
+      if (geocoder && translations.searchPlaceholder) {
+        const geocoderInput = document.querySelector('.leaflet-control-geocoder-form input');
+        if (geocoderInput) {
+          geocoderInput.placeholder = translations.searchPlaceholder;
+        }
+      }
+      
+      // Update type options if translations are available
+      if (translations.typeOptions) {
+        const typeSelect = document.getElementById('type');
+        const currentValue = typeSelect.value;
+        typeSelect.innerHTML = '';
+        
+        Object.entries(translations.typeOptions).forEach(([value, label]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          typeSelect.appendChild(option);
+        });
+        
+        // Restore selected value
+        typeSelect.value = currentValue;
+      }
     }
     
-    // Load languages and reports on initial load
+    // Initialize language support
     loadLanguages();
-    loadReports();
+    
+    // Initialize security features
+    securityFeatures.setupPrivacyMode();
+    
+    // Function to show notifications
+    function showNotification(message, type = 'info', duration = 5000) {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      const container = document.getElementById('notification-container');
+      if (!container) {
+        const newContainer = document.createElement('div');
+        newContainer.id = 'notification-container';
+        document.body.appendChild(newContainer);
+        newContainer.appendChild(notification);
+      } else {
+        container.appendChild(notification);
+      }
+      
+      // Remove notification after duration
+      setTimeout(() => {
+        notification.classList.add('hide');
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, duration);
+    }
+    
+    // Show privacy notification when the page loads
+    setTimeout(() => {
+      showNotification('Enhanced privacy features enabled: metadata removal and automatic data clearing', 'info', 8000);
+    }, 1000);
   </script>
 </body>
 </html>
