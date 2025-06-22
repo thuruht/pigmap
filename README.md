@@ -22,11 +22,13 @@ PigMap.org is a web application that allows users in the USA to anonymously repo
 - Right-to-left (RTL) language support
 - Keyboard navigation and screen reader accessibility
 
-## Technical Stack
+## Technology
 
-- **Frontend**: OpenLayers map library, vanilla JavaScript
+PigMap.org is built with:
+
+- **Frontend**: Leaflet.js for mapping, with vanilla JavaScript
 - **Backend**: Cloudflare Workers
-- **Data Storage**:
+- **Storage**:
   - Cloudflare D1 (SQLite database) for structured data
   - Cloudflare R2 for media storage (images/videos)
   - Cloudflare KV for configuration

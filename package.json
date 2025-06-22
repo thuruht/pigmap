@@ -12,8 +12,7 @@
     "es-module-shims": "^2.6.0",
     "gsap": "^3.13.0",
     "itty-router": "^4.2.2",
-    "ol": "^10.6.1",
-    "rbush": "^4.0.1",
+    "leaflet": "^1.9.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

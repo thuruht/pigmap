@@ -13,10 +13,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <!-- Leaflet Control Geocoder for Nominatim Search -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  
   <style>
     :root {
       --primary-green: #4a8f5c;
@@ -48,13 +44,12 @@
     .header {
       position: absolute;
       top: 10px;
-      left: 60px;
+      left: 10px;
       z-index: 1000;
       background-color: rgba(255, 255, 255, 0.9);
       padding: 10px;
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      max-width: 300px;
     }
     
     .header h1 {
@@ -66,7 +61,7 @@
     
     .controls {
       position: absolute;
-      bottom: 100px;
+      bottom: 20px;
       right: 20px;
       z-index: 1000;
       display: flex;
@@ -91,64 +86,6 @@
     
     .btn:hover {
       background-color: var(--dark-green);
-    }
-    
-    /* Language switcher styles */
-    .language-switcher {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      background-color: rgba(255, 255, 255, 0.9);
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-    
-    .language-switcher select {
-      padding: 5px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-    }
-    
-    /* Icon selector styles */
-    .icon-select-container {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 15px;
-    }
-    
-    .icon-preview {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-      max-height: 150px;
-      overflow-y: auto;
-      padding: 5px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-    }
-    
-    .icon-option {
-      width: 40px;
-      height: 40px;
-      padding: 5px;
-      border: 1px solid transparent;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .icon-option:hover {
-      background-color: #f0f0f0;
-    }
-    
-    .icon-option.selected {
-      border-color: var(--primary-green);
-      background-color: rgba(74, 143, 92, 0.1);
     }
     
     .report-form {
@@ -255,31 +192,15 @@
       </div>
       <div class="form-group">
         <label for="icon">Icon:</label>
-        <div class="icon-select-container">
-          <select id="icon" style="display:none;">
-            <!-- Icons will be loaded dynamically -->
-          </select>
-          <div class="icon-preview" id="icon-preview">
-            <!-- Icon previews will be displayed here -->
-          </div>
-        </div>
+        <select id="icon">
+          <!-- Icons will be loaded dynamically -->
+        </select>
       </div>
       <div class="form-actions">
         <button type="button" id="cancel-btn" class="btn" style="background-color: #999;">Cancel</button>
         <button type="submit" class="btn">Submit</button>
       </div>
     </form>
-  </div>
-
-  <div class="language-switcher">
-    <label for="language-select">Language:</label>
-    <select id="language-select">
-      <option value="en">English</option>
-      <option value="es">Español</option>
-      <option value="fr">Français</option>
-      <option value="de">Deutsch</option>
-      <option value="zh">中文</option>
-    </select>
   </div>
 
   <script>
@@ -291,32 +212,6 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     
-    // Add Nominatim search control
-    const geocoder = L.Control.geocoder({
-      defaultMarkGeocode: false,
-      position: 'topleft',
-      placeholder: 'Search for a location...',
-      errorMessage: 'Nothing found.',
-      geocoder: L.Control.Geocoder.nominatim({
-        geocodingQueryParams: {
-          countrycodes: 'us', // Limit to US
-          limit: 5
-        }
-      })
-    }).addTo(map);
-    
-    geocoder.on('markgeocode', function(e) {
-      const bbox = e.geocode.bbox;
-      const poly = L.polygon([
-        bbox.getSouthEast(),
-        bbox.getNorthEast(),
-        bbox.getNorthWest(),
-        bbox.getSouthWest()
-      ]).addTo(map);
-      map.fitBounds(poly.getBounds());
-      poly.remove();
-    });
-    
     // Create a layer group for reports
     const reportsLayer = L.layerGroup().addTo(map);
     
@@ -327,7 +222,6 @@
     const cancelBtn = document.getElementById('cancel-btn');
     const submitForm = document.getElementById('submit-report');
     const iconSelect = document.getElementById('icon');
-    const iconPreview = document.getElementById('icon-preview');
     
     // Current position marker
     let currentPositionMarker = null;
@@ -357,16 +251,11 @@
         map.removeLayer(currentPositionMarker);
       }
       
-      // Create a marker with accuracy circle
-      currentPositionMarker = L.marker(e.latlng).addTo(map)
-        .bindPopup("You are within " + Math.round(e.accuracy) + " meters of this point").openPopup();
-      
-      // Add accuracy circle
-      const accuracyCircle = L.circle(e.latlng, {
+      currentPositionMarker = L.circle(e.latlng, {
         color: 'blue',
         fillColor: '#3388ff',
         fillOpacity: 0.2,
-        radius: e.accuracy
+        radius: e.accuracy / 2
       }).addTo(map);
       
       // Update report position to use current location
@@ -444,58 +333,16 @@
         const response = await fetch('/api/icons');
         const icons = await response.json();
         
-        // Update hidden select
         iconSelect.innerHTML = '';
-        
-        // Update visual icon selector
-        const iconPreview = document.getElementById('icon-preview');
-        iconPreview.innerHTML = '';
-        
         icons.forEach(icon => {
-          // Add to hidden select
           const option = document.createElement('option');
           option.value = icon;
           option.textContent = icon.replace(/_/g, ' ').replace(/\.png$/, '');
           iconSelect.appendChild(option);
-          
-          // Add to visual icon selector
-          const iconOption = document.createElement('div');
-          iconOption.className = 'icon-option';
-          iconOption.dataset.icon = icon;
-          
-          const img = document.createElement('img');
-          img.src = `/icons/${icon}`;
-          img.alt = icon.replace(/_/g, ' ').replace(/\.png$/, '');
-          img.width = 32;
-          img.height = 32;
-          
-          iconOption.appendChild(img);
-          iconPreview.appendChild(iconOption);
-          
-          // Add click handler
-          iconOption.addEventListener('click', () => {
-            // Remove selected class from all icons
-            document.querySelectorAll('.icon-option').forEach(el => {
-              el.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked icon
-            iconOption.classList.add('selected');
-            
-            // Update the hidden select
-            iconSelect.value = icon;
-          });
         });
         
         // Set default icon
-        const defaultIcon = 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
-        iconSelect.value = defaultIcon;
-        
-        // Select the default icon in the visual selector
-        const defaultIconOption = document.querySelector(`.icon-option[data-icon="${defaultIcon}"]`);
-        if (defaultIconOption) {
-          defaultIconOption.classList.add('selected');
-        }
+        iconSelect.value = 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png';
       } catch (error) {
         console.error("Error loading icons:", error);
       }
@@ -567,7 +414,6 @@
     // Initialize
     loadIcons();
     loadReports();
-    loadLanguages(); // Load languages and translations
     
     // Set up WebSocket for real-time updates
     function setupWebSocket() {
@@ -610,137 +456,6 @@
     
     // Set up WebSocket
     setupWebSocket();
-    
-    // Icon selection logic
-    iconSelect.addEventListener('change', (e) => {
-      const selectedIcon = e.target.value;
-      
-      // Update icon preview
-      const iconOptions = document.querySelectorAll('.icon-option');
-      iconOptions.forEach(option => {
-        option.classList.remove('selected');
-        if (option.dataset.icon === selectedIcon) {
-          option.classList.add('selected');
-        }
-      });
-    });
-    
-    // Load available icons for selection
-    async function loadAvailableIcons() {
-      try {
-        const response = await fetch('/api/icons');
-        const icons = await response.json();
-        
-        // Clear existing options
-        iconPreview.innerHTML = '';
-        
-        // Add new options
-        icons.forEach(icon => {
-          const div = document.createElement('div');
-          div.className = 'icon-option';
-          div.dataset.icon = icon;
-          div.style.backgroundImage = `url('/icons/${icon}')`;
-          div.title = icon.replace(/_/g, ' ').replace(/\.png$/, '');
-          
-          // Select default icon
-          if (icon === 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png') {
-            div.classList.add('selected');
-          }
-          
-          iconPreview.appendChild(div);
-        });
-      } catch (error) {
-        console.error("Error loading available icons:", error);
-      }
-    }
-    
-    // Load available icons for selection
-    loadAvailableIcons();
-    
-    // Load translations
-    let currentLanguage = 'en';
-    let translations = {};
-    
-    async function loadLanguages() {
-      try {
-        const response = await fetch('/api/translations');
-        const data = await response.json();
-        
-        if (data && data.languages) {
-          // Populate language selector
-          const languageSelect = document.getElementById('language-select');
-          languageSelect.innerHTML = ''; // Clear existing options
-          
-          data.languages.forEach(lang => {
-            const option = document.createElement('option');
-            option.value = lang.code;
-            option.textContent = lang.name || lang.code;
-            if (lang.recommended) {
-              option.textContent += ' ★';
-            }
-            languageSelect.appendChild(option);
-          });
-          
-          // Set default language
-          const userLang = navigator.language.split('-')[0];
-          if (data.languages.some(l => l.code === userLang)) {
-            languageSelect.value = userLang;
-            currentLanguage = userLang;
-          } else {
-            languageSelect.value = 'en';
-            currentLanguage = 'en';
-          }
-          
-          // Load translations for default language
-          await loadTranslationsForLanguage(currentLanguage);
-          
-          // Add event listener for language change
-          languageSelect.addEventListener('change', async (e) => {
-            currentLanguage = e.target.value;
-            await loadTranslationsForLanguage(currentLanguage);
-            updateUITranslations();
-          });
-        }
-      } catch (error) {
-        console.error("Error loading languages:", error);
-      }
-    }
-    
-    async function loadTranslationsForLanguage(langCode) {
-      try {
-        const response = await fetch(`/api/translations/${langCode}`);
-        const data = await response.json();
-        translations = data;
-        
-        // Update UI with new translations
-        updateUITranslations();
-      } catch (error) {
-        console.error(`Error loading translations for ${langCode}:`, error);
-      }
-    }
-    
-    function updateUITranslations() {
-      // Update static UI elements
-      document.querySelector('.header h1').textContent = translations.appTitle || 'PigMap.org';
-      reportBtn.textContent = translations.reportBtn || 'Report';
-      locateBtn.textContent = translations.locateBtn || 'Locate Me';
-      
-      // Update form elements
-      document.querySelector('#report-form h2').textContent = translations.reportFormTitle || 'Report Livestock';
-      document.querySelector('label[for="type"]').textContent = (translations.typeLabel || 'Type') + ':';
-      document.querySelector('label[for="count"]').textContent = (translations.countLabel || 'How many?') + ':';
-      document.querySelector('label[for="comment"]').textContent = (translations.commentLabel || 'Comments') + ':';
-      document.querySelector('label[for="media"]').textContent = (translations.mediaLabel || 'Photo/Video (optional)') + ':';
-      document.querySelector('.icon-select-container > label').textContent = (translations.iconLabel || 'Icon') + ':';
-      
-      // Update buttons
-      cancelBtn.textContent = translations.cancelBtn || 'Cancel';
-      document.querySelector('#submit-report button[type="submit"]').textContent = translations.submitBtn || 'Submit';
-    }
-    
-    // Load languages and reports on initial load
-    loadLanguages();
-    loadReports();
   </script>
 </body>
 </html>

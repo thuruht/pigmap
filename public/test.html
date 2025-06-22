@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PigMap Test</title>
+</head>
+<body>
+    <h1>PigMap Test</h1>
+    <div id="status"></div>
+    <script>
+        const statusEl = document.getElementById('status');
+        
+        async function testApi() {
+            statusEl.textContent = 'Testing API...';
+            
+            try {
+                // Test region API
+                const regionResp = await fetch('https://pigmap.org/api/region');
+                const regionData = await regionResp.json();
+                console.log('Region data:', regionData);
+                
+                if (!regionData || !regionData.id) {
+                    throw new Error('Region API failed');
+                }
+                
+                // Test reports API
+                const reportsResp = await fetch('https://pigmap.org/api/reports');
+                const reportsData = await reportsResp.json();
+                console.log('Reports data:', reportsData);
+                
+                // Test icons API
+                const iconsResp = await fetch('https://pigmap.org/api/icons');
+                const iconsData = await iconsResp.json();
+                console.log('Icons count:', iconsData.length);
+                
+                if (!Array.isArray(iconsData)) {
+                    throw new Error('Icons API failed');
+                }
+                
+                // Test translations API
+                const translationsResp = await fetch('https://pigmap.org/api/translations');
+                const translationsData = await translationsResp.json();
+                console.log('Translations data:', translationsData);
+                
+                if (!translationsData || !translationsData.languages) {
+                    throw new Error('Translations API failed');
+                }
+                
+                // Try submitting a test report
+                const reportData = {
+                    type: 'test',
+                    longitude: -95.5,
+                    latitude: 39.5,
+                    timestamp: Date.now(),
+                    comment: 'Test report',
+                    icon: iconsData[0]
+                };
+                
+                // Create form data for multipart request
+                const formData = new FormData();
+                formData.append('report', JSON.stringify(reportData));
+                
+                const reportResp = await fetch('https://pigmap.org/api/reports', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const reportResult = await reportResp.json();
+                console.log('Report submission result:', reportResult);
+                
+                if (!reportResult.success) {
+                    throw new Error('Report submission failed: ' + (reportResult.error || 'Unknown error'));
+                }
+                
+                statusEl.textContent = 'All tests passed! App is working.';
+                statusEl.style.color = 'green';
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                statusEl.textContent = 'Test failed: ' + error.message;
+                statusEl.style.color = 'red';
+            }
+        }
+        
+        // Run the test when page loads
+        window.onload = testApi;
+    </script>
+</body>
+</html>
