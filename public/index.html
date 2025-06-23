@@ -20,6 +20,7 @@
   <style>
     :root {
       --primary-green: #4a8f5c;
+      --primary-green-lighter: #c8e6d0;
       --dark-green: #2e7d32;
       --light-green: #bff4cd;
       --primary-red: #c62828;
@@ -27,6 +28,7 @@
       --dark-red: #8e0000;
       --text-light: #f5f5f5;
       --text-dark: #212121;
+      --text-color: #212121;
       --background-light: #f8f9fa;
       --background-dark: #333;
       --border-color: #ddd;
@@ -427,6 +429,182 @@
       from { transform: translateX(0); opacity: 1; }
       to { transform: translateX(100%); opacity: 0; }
     }
+    
+    /* Custom map controls styles */
+    .custom-map-control {
+      background-color: white;
+      border-radius: 4px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    .custom-map-control a {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      color: black;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .custom-map-control a:hover {
+      background-color: #f4f4f4;
+    }
+
+    /* Resources list in the About modal */
+    .resource-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .resource-button {
+      display: block;
+      background: var(--primary-green-lighter);
+      color: var(--text-color);
+      border: 1px solid var(--primary-green);
+      padding: 10px 15px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .resource-button:hover {
+      background: var(--primary-green);
+      color: white;
+    }
+
+    .about-modal-content {
+      max-width: 600px;
+    }
+
+    .resource-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .resource-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .resource-modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-color);
+    }
+
+    .resource-modal-body {
+      padding: 20px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: white;
+      color: black;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .resource-modal-body {
+        background: #222;
+        color: #f0f0f0;
+      }
+    }
+
+    /* Dark mode implementation */
+    .dark-mode {
+      --text-color: #f0f0f0;
+      --background-light: #222;
+      --border-color: #444;
+      --primary-green-lighter: #2a4e33;
+    }
+
+    /* Apply dark mode to body and map elements */
+    body.dark-mode {
+      background-color: var(--background-dark);
+      color: var(--text-color);
+    }
+
+    body.dark-mode .header,
+    body.dark-mode .language-switcher,
+    body.dark-mode .report-form,
+    body.dark-mode .notification,
+    body.dark-mode .custom-map-control a,
+    body.dark-mode .leaflet-control-geocoder-form input {
+      background-color: #333;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode .comment-item {
+      background-color: #3a3a3a;
+    }
+
+    body.dark-mode .resource-modal-body {
+      background: #222;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode .icon-option:hover {
+      background-color: #444;
+    }
+
+    body.dark-mode .comment-meta,
+    body.dark-mode .coordinates,
+    body.dark-mode .category-description {
+      color: #aaa;
+    }
+
+    body.dark-mode select,
+    body.dark-mode input,
+    body.dark-mode textarea {
+      background-color: #444;
+      color: #f0f0f0;
+      border-color: #555;
+    }
+
+    /* Dark mode toggle button */
+    .dark-mode-toggle {
+      position: absolute;
+      top: 10px;
+      right: 140px;
+      z-index: 1001;
+      background-color: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    body.dark-mode .dark-mode-toggle {
+      background-color: #333;
+      color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -435,6 +613,11 @@
   </div>
   
   <div id="map"></div>
+  
+  <div class="dark-mode-toggle">
+    <span id="dark-mode-icon">🌙</span>
+    <span id="dark-mode-label">Dark Mode</span>
+  </div>
   
   <div class="controls">
     <button id="report-btn" class="btn">Report Location</button>
@@ -578,6 +761,96 @@
       })
     }).addTo(map);
     
+    // Create custom About/Info control
+    const AboutControl = L.Control.extend({
+      options: {
+        position: 'topright'
+      },
+      
+      onAdd: function(map) {
+        const container = L.DomUtil.create('div', 'custom-map-control about-control leaflet-bar');
+        const link = L.DomUtil.create('a', '', container);
+        link.href = '#';
+        link.title = 'About & Resources';
+        link.innerHTML = 'ℹ️';
+        
+        L.DomEvent.on(link, 'click', L.DomEvent.stopPropagation)
+          .on(link, 'click', L.DomEvent.preventDefault)
+          .on(link, 'click', function() {
+            showAboutModal();
+          });
+          
+        return container;
+      }
+    });
+    
+    // Add the custom About control to the map
+    map.addControl(new AboutControl());
+    
+    // Function to show the About modal with project information and resources
+    function showAboutModal() {
+      const modalContent = document.createElement('div');
+      modalContent.className = 'about-modal-content';
+      modalContent.innerHTML = `
+        <h2>About PigMap.org</h2>
+        <p>PigMap.org is a community-driven platform for tracking and reporting wildlife observations across the United States. Our goal is to help communities document and understand animal populations while protecting users' privacy.</p>
+        
+        <h3>Features</h3>
+        <ul>
+          <li>Private, anonymous reporting - no personal data is stored</li>
+          <li>Multi-language support</li>
+          <li>Detailed category system for accurate reporting</li>
+          <li>Community comment system for ongoing observations</li>
+        </ul>
+        
+        <h3>Privacy Commitment</h3>
+        <p>Your privacy is our top priority. We do not collect IP addresses or any personally identifiable information. All reports are anonymous, and uploaded images are automatically stripped of metadata.</p>
+        
+        <h3>Educational Resources</h3>
+        <p>Learn more about important topics related to wildlife management and conservation:</p>
+        
+        <div class="resource-list">
+          <button class="resource-button" data-resource="fourth_amendment">Property Rights & Wildlife Management</button>
+          <button class="resource-button" data-resource="first_amendment">Documentation Rights for Wildlife Management</button>
+          <button class="resource-button" data-resource="due_process">Legal Frameworks for Rural Community Protection</button>
+        </div>
+      `;
+      
+      const modal = document.createElement('div');
+      modal.className = 'resource-modal';
+      modal.innerHTML = `
+        <div class="resource-modal-body"></div>
+      `;
+      
+      modal.querySelector('.resource-modal-body').appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      // Add event listeners to resource buttons
+      modal.querySelectorAll('.resource-button').forEach(button => {
+        button.addEventListener('click', () => {
+          const resourceId = button.getAttribute('data-resource');
+          document.body.removeChild(modal);
+          showResourceDocument(resourceId);
+        });
+      });
+      
+      // Close modal when clicking outside content
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+        }
+      });
+      
+      // Add escape key handler
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(modal);
+          document.removeEventListener('keydown', handleEscape);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+    }
+    
     geocoder.on('markgeocode', function(e) {
       const bbox = e.geocode.bbox;
       const center = e.geocode.center;
@@ -687,7 +960,7 @@
       
       tempMarker = L.marker(latlng, {
         icon: L.icon({
-          iconUrl: '/icons/pin_drop_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+          iconUrl: '/icons/location_searching_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
           iconSize: [32, 32],
           iconAnchor: [16, 32],
           popupAnchor: [0, -32]
@@ -719,7 +992,7 @@
       // Create a marker with accuracy circle
       currentPositionMarker = L.marker(e.latlng, {
         icon: L.icon({
-          iconUrl: '/icons/my_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+          iconUrl: '/icons/not_listed_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
           iconSize: [32, 32],
           iconAnchor: [16, 16],
           popupAnchor: [0, -16]
@@ -807,166 +1080,176 @@
       }
     });
     
-    // Security and anonymity enhancements
-    const securityFeatures = {
-      // Remove all metadata from images before upload
-      sanitizeMedia: function(file) {
-        return new Promise((resolve) => {
-          if (!file || !file.type.startsWith('image/')) {
-            resolve(file); // Not an image, return as is
+    // Function to add a report to the map
+    function addReportToMap(report) {
+      // Create marker with the appropriate icon
+      const marker = L.marker([report.latitude, report.longitude], {
+        icon: L.icon({
+          iconUrl: `/icons/${report.icon || 'location_searching_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png'}`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        })
+      });
+      
+      // Format date
+      const reportDate = new Date(report.timestamp);
+      const formattedDate = reportDate.toLocaleDateString() + ' ' + reportDate.toLocaleTimeString();
+      
+      // Create popup content
+      const popupContent = document.createElement('div');
+      popupContent.className = 'popup-content';
+      
+      // Get category label
+      const category = reportCategories.find(cat => cat.id === report.type);
+      const categoryLabel = category ? category.label : report.type;
+      
+      popupContent.innerHTML = `
+        <h3>${categoryLabel}</h3>
+        <div class="meta">Reported: ${formattedDate}</div>
+        <div class="meta">Location: ${report.address || `${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}`}</div>
+        <p>${report.comment || 'No additional details provided.'}</p>
+        ${report.count > 1 ? `<div><strong>Count:</strong> ${report.count}</div>` : ''}
+        ${report.imageUrl ? `<img src="${report.imageUrl}" alt="Report image">` : ''}
+        
+        <div class="comments-section">
+          <h4>Comments</h4>
+          <div class="comments-list" data-report-id="${report.id}">
+            <p class="loading-comments">Loading comments...</p>
+          </div>
+          
+          <div class="comment-form">
+            <textarea placeholder="Add a comment..." class="comment-input"></textarea>
+            <div class="media-upload">
+              <input type="file" accept="image/*,video/*" class="comment-media">
+            </div>
+            <button class="btn comment-submit" data-report-id="${report.id}">Add Comment</button>
+          </div>
+        </div>
+      `;
+      
+      // Add the popup to the marker
+      marker.bindPopup(popupContent);
+      
+      // Add marker to the reports layer
+      marker.addTo(reportsLayer);
+      
+      // Add event listener for comment submission
+      const commentBtn = popupContent.querySelector('.comment-submit');
+      if (commentBtn) {
+        commentBtn.addEventListener('click', async () => {
+          const commentText = popupContent.querySelector('.comment-input').value.trim();
+          const commentMedia = popupContent.querySelector('.comment-media').files[0];
+          
+          if (!commentText && !commentMedia) {
+            alert('Please enter a comment or attach media.');
             return;
           }
           
-          const img = new Image();
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          img.onload = function() {
-            // Create a clean canvas with the image
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+          try {
+            const formData = new FormData();
+            formData.append('comment', commentText);
+            formData.append('reportId', report.id);
             
-            // Convert to blob with no metadata
-            canvas.toBlob((blob) => {
-              // Create a new file object without metadata
-              const sanitizedFile = new File([blob], 'image.jpg', {
-                type: 'image/jpeg',
-                lastModified: new Date().getTime()
-              });
-              resolve(sanitizedFile);
-            }, 'image/jpeg', 0.75);
-          };
-          
-          img.src = URL.createObjectURL(file);
-        });
-      },
-      
-      // Generate a random ID for reports that doesn't use device info
-      generateAnonymousId: function() {
-        const randomBytes = new Uint8Array(16);
-        window.crypto.getRandomValues(randomBytes);
-        return Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-      },
-      
-      // Set up enhanced privacy by default
-      setupPrivacyMode: function() {
-        // Always enable privacy mode - clear data on exit
-        window.addEventListener('beforeunload', securityFeatures.clearLocalData);
-        
-        // Also sanitize all image uploads automatically
-        const mediaInput = document.getElementById('media');
-        if (mediaInput) {
-          mediaInput.addEventListener('change', async function() {
-            if (this.files.length > 0) {
-              const sanitizedFile = await securityFeatures.sanitizeMedia(this.files[0]);
-              
-              // Create a new FileList containing only the sanitized file
-              const dataTransfer = new DataTransfer();
-              dataTransfer.items.add(sanitizedFile);
-              this.files = dataTransfer.files;
-              
-              console.log('Media metadata stripped for privacy');
+            if (commentMedia) {
+              // Sanitize media if it's an image
+              const sanitizedMedia = await securityFeatures.sanitizeMedia(commentMedia);
+              formData.append('media', sanitizedMedia);
             }
-          });
-        }
-      },
-      
-      clearLocalData: function() {
-        localStorage.clear();
-        sessionStorage.clear();
-        
-        // Clear all cookies
-        document.cookie.split(";").forEach(function(c) {
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            
+            const response = await fetch('/api/comments', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+              // Clear the form
+              popupContent.querySelector('.comment-input').value = '';
+              popupContent.querySelector('.comment-media').value = '';
+              
+              // Reload comments
+              loadComments(report.id);
+            } else {
+              alert('Failed to post comment: ' + (result.error || 'Unknown error'));
+            }
+          } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Failed to post comment. Please try again.');
+          }
         });
       }
-    };
-    
-    // Civil rights documents presented as conservation information
-    const resourceDocuments = {
-      fourth_amendment: {
-        title: "Property Rights & Wildlife Management",
-        content: `
-          <h3>Fourth Amendment: Protection Against Unreasonable Searches and Seizures</h3>
-          <blockquote>"The right of the people to be secure in their persons, houses, papers, and effects, against unreasonable searches and seizures, shall not be violated, and no Warrants shall issue, but upon probable cause, supported by Oath or affirmation, and particularly describing the place to be searched, and the persons or things to be seized."</blockquote>
-          
-          <h4>Practical Applications for Land Managers:</h4>
-          <ul>
-            <li>Government agents cannot search your property without a warrant or an exception</li>
-            <li>Warrants must specifically describe what they're looking for</li>
-            <li>You have the right to refuse consent to warrantless searches</li>
-            <li>Evidence obtained through illegal searches can't be used against you</li>
-            <li>Your electronic devices are protected from warrantless searches</li>
-          </ul>
-          
-          <p>Understanding these protections helps you manage your land effectively while maintaining your constitutional rights.</p>
-        `
-      },
-      first_amendment: {
-        title: "Documentation Rights for Wildlife Management",
-        content: `
-          <h3>First Amendment: Freedom of Speech, Press, Assembly</h3>
-          <blockquote>"Congress shall make no law respecting an establishment of religion, or prohibiting the free exercise thereof; or abridging the freedom of speech, or of the press; or the right of the people peaceably to assemble, and to petition the Government for a redress of grievances."</blockquote>
-          
-          <h4>Practical Applications for Documentation:</h4>
-          <ul>
-            <li>You have the right to record activities on public property</li>
-            <li>You can document wildlife management activities by government agencies</li>
-            <li>You can share information about wildlife sightings publicly</li>
-            <li>You can gather with others to discuss conservation strategies</li>
-            <li>You can petition government agencies about wildlife management policies</li>
-          </ul>
-          
-          <p>These freedoms ensure transparency in conservation efforts and allow communities to work together effectively.</p>
-        `
-      },
-      due_process: {
-        title: "Legal Frameworks for Rural Community Protection",
-        content: `
-          <h3>Fifth and Fourteenth Amendments: Due Process and Equal Protection</h3>
-          <blockquote>"No person shall... be deprived of life, liberty, or property, without due process of law."</blockquote>
-          <blockquote>"No State shall... deny to any person within its jurisdiction the equal protection of the laws."</blockquote>
-          
-          <h4>Practical Applications for Rural Communities:</h4>
-          <ul>
-            <li>Government must follow established procedures before taking action that affects your rights</li>
-            <li>You are entitled to notice and a hearing before property restrictions</li>
-            <li>Law enforcement must treat all communities equally</li>
-            <li>Rural areas deserve the same legal protections as urban areas</li>
-            <li>You have the right to challenge government actions that unfairly target your community</li>
-          </ul>
-          
-          <p>These protections ensure fair treatment for all communities engaged in wildlife management and conservation.</p>
-        `
-      }
-    };
-
-    // Function to show resource document
-    function showResourceDocument(resourceId) {
-      const resource = resourceDocuments[resourceId];
-      if (!resource) return;
       
-      const modalContent = document.createElement('div');
-      modalContent.innerHTML = resource.content;
-      
-      const modal = document.createElement('div');
-      modal.className = 'resource-modal';
-      modal.innerHTML = `
-        <div class="resource-modal-header">
-          <h2>${resource.title}</h2>
-          <button class="close-modal">&times;</button>
-        </div>
-        <div class="resource-modal-body"></div>
-      `;
-      
-      modal.querySelector('.resource-modal-body').appendChild(modalContent);
-      document.body.appendChild(modal);
-      
-      modal.querySelector('.close-modal').addEventListener('click', () => {
-        document.body.removeChild(modal);
+      // Load comments when popup is opened
+      marker.on('popupopen', () => {
+        loadComments(report.id);
       });
+      
+      return marker;
     }
+    
+    // Function to load comments for a report
+    async function loadComments(reportId) {
+      const commentsContainer = document.querySelector(`.comments-list[data-report-id="${reportId}"]`);
+      if (!commentsContainer) return;
+      
+      commentsContainer.innerHTML = '<p class="loading-comments">Loading comments...</p>';
+      
+      try {
+        const response = await fetch(`/api/comments/${reportId}`);
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.comments)) {
+          if (data.comments.length === 0) {
+            commentsContainer.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+          } else {
+            commentsContainer.innerHTML = '';
+            
+            data.comments.forEach(comment => {
+              const commentDate = new Date(comment.timestamp);
+              const formattedDate = commentDate.toLocaleDateString() + ' ' + commentDate.toLocaleTimeString();
+              
+              const commentElement = document.createElement('div');
+              commentElement.className = 'comment-item';
+              commentElement.innerHTML = `
+                <div class="comment-meta">Posted: ${formattedDate}</div>
+                <div class="comment-text">${comment.text || ''}</div>
+                ${comment.imageUrl ? `<img src="${comment.imageUrl}" alt="Comment image">` : ''}
+              `;
+              
+              commentsContainer.appendChild(commentElement);
+            });
+          }
+        } else {
+          commentsContainer.innerHTML = '<p>Failed to load comments.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading comments:', error);
+        commentsContainer.innerHTML = '<p>Failed to load comments. Please try again.</p>';
+      }
+    }
+    
+    // Load initial reports
+    async function loadReports() {
+      try {
+        const response = await fetch('/api/reports');
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.reports)) {
+          data.reports.forEach(report => {
+            addReportToMap(report);
+          });
+        } else {
+          console.error('Failed to load reports:', data.error || 'Unknown error');
+        }
+      } catch (error) {
+        console.error('Error loading reports:', error);
+      }
+    }
+    
+    // Load initial reports
+    loadReports();
     
     // Set up WebSocket for real-time updates
     function setupWebSocket() {
@@ -1137,8 +1420,133 @@
     // Initialize language support
     loadLanguages();
     
+    // Dark mode functionality
+    function setDarkMode(isDark) {
+      if (isDark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('dark-mode-icon').textContent = '☀️';
+        document.getElementById('dark-mode-label').textContent = 'Light Mode';
+        localStorage.setItem('pigmap-dark-mode', 'true');
+      } else {
+        document.body.classList.remove('dark-mode');
+        document.getElementById('dark-mode-icon').textContent = '🌙';
+        document.getElementById('dark-mode-label').textContent = 'Dark Mode';
+        localStorage.setItem('pigmap-dark-mode', 'false');
+      }
+    }
+    
+    // Dark mode toggle event listener
+    document.querySelector('.dark-mode-toggle').addEventListener('click', () => {
+      const isDarkModeEnabled = document.body.classList.contains('dark-mode');
+      setDarkMode(!isDarkModeEnabled);
+    });
+    
+    // Initialize dark mode based on preference (default to dark mode)
+    const savedDarkMode = localStorage.getItem('pigmap-dark-mode');
+    if (savedDarkMode === null || savedDarkMode === 'true') {
+      setDarkMode(true);
+    } else {
+      setDarkMode(false);
+    }
+    
     // Initialize security features
     securityFeatures.setupPrivacyMode();
+    
+    // Populate category select
+    function populateCategories() {
+      const typeSelect = document.getElementById('type');
+      const categoryDescription = document.getElementById('category-description');
+      
+      // Clear existing options
+      typeSelect.innerHTML = '';
+      
+      // Add each category as an option
+      reportCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.label;
+        typeSelect.appendChild(option);
+      });
+      
+      // Set description for initially selected category
+      updateCategoryDescription();
+      
+      // Update description when selection changes
+      typeSelect.addEventListener('change', updateCategoryDescription);
+    }
+    
+    // Update category description based on selection
+    function updateCategoryDescription() {
+      const typeSelect = document.getElementById('type');
+      const categoryDescription = document.getElementById('category-description');
+      const selectedCategory = reportCategories.find(cat => cat.id === typeSelect.value);
+      
+      if (selectedCategory) {
+        categoryDescription.textContent = selectedCategory.description;
+      } else {
+        categoryDescription.textContent = '';
+      }
+    }
+    
+    // Initialize category select
+    populateCategories();
+    
+    // Populate icon select with options from categories
+    function populateIconSelect() {
+      const iconSelect = document.getElementById('icon');
+      const iconPreview = document.getElementById('icon-preview');
+      
+      // Clear existing options
+      iconSelect.innerHTML = '';
+      iconPreview.innerHTML = '';
+      
+      // Add each icon as an option
+      const uniqueIcons = [...new Set(reportCategories.map(cat => cat.icon))];
+      
+      uniqueIcons.forEach(icon => {
+        // Add to dropdown
+        const option = document.createElement('option');
+        option.value = icon;
+        option.textContent = icon.replace(/_/g, ' ').replace('.png', '');
+        iconSelect.appendChild(option);
+        
+        // Add to visual preview
+        const iconOption = document.createElement('div');
+        iconOption.className = 'icon-option';
+        iconOption.setAttribute('data-icon', icon);
+        iconOption.innerHTML = `<img src="/icons/${icon}" alt="${icon}">`;
+        iconPreview.appendChild(iconOption);
+        
+        // Add click handler
+        iconOption.addEventListener('click', () => {
+          // Update select value
+          iconSelect.value = icon;
+          
+          // Update visual selection
+          document.querySelectorAll('.icon-option').forEach(opt => {
+            opt.classList.remove('selected');
+          });
+          iconOption.classList.add('selected');
+        });
+      });
+      
+      // Initial selection
+      if (uniqueIcons.length > 0) {
+        iconSelect.value = uniqueIcons[0];
+        document.querySelector(`.icon-option[data-icon="${uniqueIcons[0]}"]`).classList.add('selected');
+      }
+      
+      // Sync dropdown and visual selector
+      iconSelect.addEventListener('change', () => {
+        const selectedIcon = iconSelect.value;
+        document.querySelectorAll('.icon-option').forEach(opt => {
+          opt.classList.toggle('selected', opt.getAttribute('data-icon') === selectedIcon);
+        });
+      });
+    }
+    
+    // Initialize icon select
+    populateIconSelect();
     
     // Function to show notifications
     function showNotification(message, type = 'info', duration = 5000) {
@@ -1171,6 +1579,24 @@
     setTimeout(() => {
       showNotification('Enhanced privacy features enabled: metadata removal and automatic data clearing', 'info', 8000);
     }, 1000);
+    
+    // Dark mode toggle functionality
+    const darkModeToggle = document.querySelector('.dark-mode-toggle');
+    const darkModeIcon = document.getElementById('dark-mode-icon');
+    const darkModeLabel = document.getElementById('dark-mode-label');
+    
+    darkModeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      
+      // Update icon and label based on dark mode state
+      if (document.body.classList.contains('dark-mode')) {
+        darkModeIcon.textContent = '☀️';
+        darkModeLabel.textContent = 'Light Mode';
+      } else {
+        darkModeIcon.textContent = '🌙';
+        darkModeLabel.textContent = 'Dark Mode';
+      }
+    });
   </script>
 </body>
 </html>
