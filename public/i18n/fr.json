@@ -1,0 +1,27 @@
+{
+  "appTitle": "PigMap.org",
+  "reportBtn": "Signaler l'emplacement",
+  "locateBtn": "Trouver ma position",
+  "reportFormTitle": "Signaler un emplacement",
+  "typeLabel": "Type",
+  "countLabel": "Combien ?",
+  "commentLabel": "Commentaires",
+  "locationLabel": "Emplacement",
+  "mediaLabel": "Photo/Vidéo (optionnel)",
+  "iconLabel": "Icône",
+  "cancelBtn": "Annuler",
+  "submitBtn": "Envoyer",
+  "updateLocationBtn": "Mettre à jour l'emplacement",
+  "languageLabel": "Langue:",
+  "searchPlaceholder": "Rechercher un emplacement...",
+  "typeOptions": {
+    "feral": "Sanglier sauvage",
+    "patrol": "Patrouille de territoire",
+    "tracking": "Activité de suivi",
+    "equipment": "Observation d'équipement",
+    "checkpoint": "Emplacement fixe",
+    "damage": "Dommages à la propriété",
+    "group": "Activité de groupe",
+    "nighttime": "Activité nocturne"
+  }
+}

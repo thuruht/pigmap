@@ -50,7 +50,7 @@
     .header {
       position: absolute;
       top: 10px;
-      left: 60px;
+      left: 10px;
       z-index: 1000;
       background-color: rgba(255, 255, 255, 0.9);
       padding: 10px;
@@ -61,8 +61,10 @@
     
     /* Ensure header doesn't overlap with map controls */
     /* Ensure header doesn't overlap with map controls */
-    .leaflet-control-container .leaflet-top.leaflet-left {
-      top: 70px; /* Give space for header */
+    /* Give space for top UI elements so map controls don't overlap them */
+    .leaflet-control-container .leaflet-top.leaflet-left,
+    .leaflet-control-container .leaflet-top.leaflet-right {
+      top: 80px; /* push leaflet controls down on larger screens */
     }
     
     /* Custom positioning for search control */
@@ -113,10 +115,14 @@
       top: 10px;
       right: 10px;
       z-index: 1001; /* Higher than other controls */
-      background-color: rgba(255, 255, 255, 0.9);
-      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 8px 10px;
       border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
     }
     
     .language-switcher select {
@@ -673,8 +679,8 @@
   </div>
 
   <div class="language-switcher">
-    <label for="language-select">Language:</label>
-    <select id="language-select">
+    <label for="language-selector">Language:</label>
+    <select id="language-selector" aria-label="Language selector">
       <option value="en">English</option>
       <option value="es">Español</option>
       <option value="fr">Français</option>

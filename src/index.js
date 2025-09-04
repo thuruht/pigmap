@@ -3,6 +3,7 @@ import { Router } from 'itty-router';
 import { LivestockReport } from './durable_objects';
 import { translations, languageNames } from './i18n';
 import { v4 as uuidv4 } from 'uuid';
+import { validateReportPayload, rateLimit, isValidMediaSignature } from './validators';
 
 // Helper to determine MIME type
 function getMimeType(path) {
@@ -167,6 +168,12 @@ router.post('/api/reports', async (request, env) => {
   }
   
   try {
+    // Rate limit reports to avoid abuse
+    const rl = await rateLimit(request, env, { limit: 6, windowSeconds: 60, keyPrefix: 'reports' });
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
+    }
+
     // Parse form data
     const formData = await request.formData();
     const reportJson = formData.get('report');
@@ -179,20 +186,25 @@ router.post('/api/reports', async (request, env) => {
       });
     }
     
-    // Parse report data
-    const reportData = JSON.parse(reportJson);
-    const reportId = uuidv4(); // Generate a unique ID for the report
+    // Parse report data and validate
+    const parsed = JSON.parse(reportJson);
+    const validation = validateReportPayload(parsed);
+    if (!validation.ok) {
+      return new Response(JSON.stringify({ error: validation.error }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+    const reportData = validation.report;
+  const reportId = uuidv4(); // Generate a unique ID for the report
     
     // Generate an edit token that will be returned to the user
     const editToken = uuidv4();
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 30); // Token valid for 30 days
-    
+    // Store edit token expiry as integer milliseconds since epoch
+    const expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+
     // Store the edit token in the database
     await env.LIVESTOCK_DB.prepare(`
       INSERT INTO edit_tokens (token, report_id, expires_at)
       VALUES (?, ?, ?)
-    `).bind(editToken, reportId, expiryDate.getTime()).run();
+    `).bind(editToken, reportId, expiryDate).run();
     
     // Basic validation
     if (!reportData.type || !reportData.longitude || !reportData.latitude) {
@@ -202,9 +214,8 @@ router.post('/api/reports', async (request, env) => {
       });
     }
     
-    // Get client IP and country
-    const clientIP = request.headers.get('CF-Connecting-IP');
-    const clientCountry = request.cf ? request.cf.country : null;
+  // Get client country (we intentionally do not store the IP for privacy)
+  const clientCountry = request.cf ? request.cf.country : null;
     
     // Only allow reports from the US (configurable via KV)
     const allowedCountries = await env.PIGMAP_CONFIG.get('allowed_countries');
@@ -217,6 +228,9 @@ router.post('/api/reports', async (request, env) => {
       });
     }
     
+    // Ensure timestamp is stored as integer milliseconds
+    const timestamp = typeof reportData.timestamp === 'number' ? reportData.timestamp : Date.now();
+
     // Store in D1 database without storing any IP information
     await env.LIVESTOCK_DB.prepare(`
       INSERT INTO reports (id, type, count, comment, longitude, latitude, timestamp, reporter_ip, icon)
@@ -228,61 +242,59 @@ router.post('/api/reports', async (request, env) => {
       reportData.comment || '',
       reportData.longitude,
       reportData.latitude,
-      reportData.timestamp,
+      timestamp,
       null, // Don't store IP addresses at all for privacy
       reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png'
     ).run();
     
     // Process media file if provided
     let mediaUrl = null;
-    if (mediaFile) {
+    if (mediaFile && mediaFile.size !== undefined) {
       // Validate file size (max 5MB)
       const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-      let fileSize = 0;
-      
-      try {
-        // Get file size by cloning the stream, reading it, and then resetting
-        const fileBlob = await mediaFile.arrayBuffer();
-        fileSize = fileBlob.byteLength;
-        
-        if (fileSize > MAX_FILE_SIZE) {
-          return new Response(JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
-        
-        // Validate file type (only images and videos)
-        const allowedTypes = [
-          'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-          'video/mp4', 'video/quicktime', 'video/webm'
-        ];
-        
-        if (!allowedTypes.includes(mediaFile.type)) {
-          return new Response(JSON.stringify({ 
-            error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP) and videos (MP4, QuickTime, WebM) are allowed.' 
-          }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
-        
-        // Generate a unique filename
-        const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `${reportId}.${fileExt}`;
-        
-        // Upload to R2
-        await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.type.startsWith('image/') ? 
-          fileBlob : 
-          mediaFile.stream(), { // Only use blob for images to validate them
-          httpMetadata: {
-            contentType: mediaFile.type,
-          }
+      // Validate file size
+      if (mediaFile.size > MAX_FILE_SIZE) {
+        return new Response(JSON.stringify({ error: 'File too large. Maximum size is 5MB.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
         });
-        
+      }
+
+      // Validate file type (only images and videos)
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'video/mp4', 'video/quicktime', 'video/webm'
+      ];
+
+      if (!allowedTypes.includes(mediaFile.type)) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid file type. Only images (JPEG, PNG, GIF, WebP) and videos (MP4, QuickTime, WebM) are allowed.' 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Generate a unique filename
+      const fileExt = (mediaFile.name || 'bin').split('.').pop();
+      const fileName = `${reportId}.${fileExt}`;
+
+      try {
+        // For images, validate signature before storing
+        if (mediaFile.type.startsWith('image/')) {
+          const fileBuffer = await mediaFile.arrayBuffer();
+          if (!isValidMediaSignature(fileBuffer, mediaFile.type)) {
+            return new Response(JSON.stringify({ error: 'Invalid image data' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+          }
+          await env.LIVESTOCK_MEDIA.put(fileName, fileBuffer, { httpMetadata: { contentType: mediaFile.type } });
+        } else {
+          // For videos, stream directly
+          await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.stream(), { httpMetadata: { contentType: mediaFile.type } });
+        }
+
         // Generate the public URL
         mediaUrl = `https://media.pigmap.org/${fileName}`;
-        
+
         // Store media reference in D1
         await env.LIVESTOCK_DB.prepare(`
           INSERT INTO media (report_id, url, content_type)
@@ -292,8 +304,8 @@ router.post('/api/reports', async (request, env) => {
           mediaUrl,
           mediaFile.type
         ).run();
-        
-        // Add the media URL to the report
+
+        // Add the media URL to the report data returned to the client
         reportData.imageUrl = mediaUrl;
       } catch (mediaError) {
         console.error('Error processing media:', mediaError);
@@ -425,6 +437,12 @@ router.post('/api/reports/:id/comments', async (request, env) => {
         headers: { 'Content-Type': 'application/json' }
       });
     }
+
+    // Rate limit comments to prevent spam
+    const rl = await rateLimit(request, env, { limit: 12, windowSeconds: 60, keyPrefix: `comments:${id}` });
+    if (!rl.allowed) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
+    }
     
     // Parse form data
     const formData = await request.formData();
@@ -452,6 +470,12 @@ router.post('/api/reports/:id/comments', async (request, env) => {
     
     // Parse comment data
     const commentData = JSON.parse(commentJson);
+    if (!commentData || !commentData.content || String(commentData.content).length === 0) {
+      return new Response(JSON.stringify({ error: 'Empty comment' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (String(commentData.content).length > 2000) {
+      return new Response(JSON.stringify({ error: 'Comment too long' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
     const commentId = uuidv4();
     const timestamp = Date.now();
     

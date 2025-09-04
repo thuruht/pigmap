@@ -60,6 +60,33 @@ npm install
 npm run dev
 ```
 
+### Verify Migrations Locally
+
+There's a small helper script that applies the SQL migration files against a temporary SQLite database and verifies the expected tables and columns exist. This is useful to sanity-check D1 migrations before deploying.
+
+Run it with:
+
+```bash
+node scripts/verify_migrations.js
+```
+
+Rate limiting and configuration
+
+- PigMap uses a KV namespace (suggested name: `PIGMAP_RATE_LIMIT`) for short-lived rate-limiting counters. Bind it in `wrangler.toml` as `PIGMAP_RATE_LIMIT`.
+- Optionally set `RATE_LIMIT_SALT` (secret) in your environment/Secret to make hashed identifiers harder to guess. Bind as an environment variable in your Worker.
+
+Docker-based exact migration test
+
+If you want to execute the migrations exactly as D1 would, use the included Docker helper which runs sqlite3 and prints schema information:
+
+```bash
+# Build container (one-time)
+docker build -t pigmap-migrate -f docker/Dockerfile .
+
+# Run the migration verifier
+docker run --rm -v "$PWD":/work -w /work pigmap-migrate /bin/bash -c "./docker/run_migrations.sh"
+```
+
 ### Deployment
 
 Deploy to Cloudflare Workers:
@@ -113,6 +140,10 @@ The application uses Cloudflare D1 (SQLite) with the following schema:
 
 - **reports**: Stores livestock sighting reports
 - **media**: Stores references to media files in R2
+
+Notes:
+- Media uploads are limited to 5MB per file by default. This is enforced by the Worker in `src/index.js`.
+- Allowed media content types: image/jpeg, image/png, image/gif, image/webp, video/mp4, video/quicktime, video/webm.
 
 ## Features
 

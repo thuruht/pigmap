@@ -1,0 +1,27 @@
+{
+  "appTitle": "PigMap.org",
+  "reportBtn": "Reportar ubicación",
+  "locateBtn": "Encontrar mi ubicación",
+  "reportFormTitle": "Reportar ubicación",
+  "typeLabel": "Tipo",
+  "countLabel": "¿Cuántos?",
+  "commentLabel": "Comentarios",
+  "locationLabel": "Ubicación",
+  "mediaLabel": "Foto/Video (opcional)",
+  "iconLabel": "Icono",
+  "cancelBtn": "Cancelar",
+  "submitBtn": "Enviar",
+  "updateLocationBtn": "Actualizar ubicación",
+  "languageLabel": "Idioma:",
+  "searchPlaceholder": "Buscar ubicación...",
+  "typeOptions": {
+    "feral": "Jabalí Feral",
+    "patrol": "Patrulla de Territorio",
+    "tracking": "Actividad de Rastreo",
+    "equipment": "Avistamiento de Equipo",
+    "checkpoint": "Ubicación Fija",
+    "damage": "Daño a la Propiedad",
+    "group": "Actividad de Grupo",
+    "nighttime": "Actividad Nocturna"
+  }
+}

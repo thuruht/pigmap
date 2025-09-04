@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "npm run copy-libs && wrangler deploy",
-    "copy-libs": "bash copy-libs.sh"
+    "copy-libs": "bash copy-libs.sh",
+    "verify:migrations": "node scripts/verify_migrations.js",
+    "verify:i18n": "node scripts/check_i18n.js"
   },
   "dependencies": {
     "es-module-shims": "^2.6.0",
