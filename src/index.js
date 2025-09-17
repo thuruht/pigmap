@@ -1,4 +1,4 @@
-// src/index.js
+// src/index.js (Corrected)
 
 import { Toucan } from 'toucan-js';
 import { Router } from 'itty-router';
@@ -10,25 +10,23 @@ export { LivestockReport } from './durable_objects';
 
 const router = Router();
 
-// Middleware for error handling and Sentry integration
+// Middleware for error handling
 const withErrorHandler = (request, env, ctx) => async (handler) => {
-    // Uncomment and add SENTRY_DSN secret if you use Sentry
-    // const sentry = new Toucan({
-    //     dsn: env.SENTRY_DSN,
-    //     context: ctx,
-    //     request,
-    // });
     try {
         return await handler();
     } catch (err) {
-        // sentry.captureException(err);
         console.error("Caught error:", err.stack);
+        // Optionally add Sentry or other error tracking here
         return new Response('Internal Server Error', { status: 500 });
     }
 };
 
 // Middleware for adding CORS headers
 const withCors = (response) => {
+    if (!response) {
+      // In case of a fall-through where no response is generated
+      return new Response('Not found', { status: 404 });
+    }
     const headers = new Headers(response.headers);
     headers.set('Access-Control-Allow-Origin', '*');
     headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
@@ -36,17 +34,14 @@ const withCors = (response) => {
     return new Response(response.body, { ...response, headers });
 };
 
-// API Routes
+// --- API Routes ---
+// The router will only handle requests prefixed with /api
 router.get('/api/reports', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleGetReports(request, env)));
 router.post('/api/reports', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleCreateReport(request, env)));
 router.put('/api/reports/:id', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleUpdateReport(request, env)));
 router.get('/api/reports/:id/comments', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleGetComments(request, env)));
 router.post('/api/reports/:id/comments', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleCreateComment(request, env)));
-
-// Translations endpoint
-router.get('/api/translations', (request, env) => {
-    return new Response(JSON.stringify({ translations, languageNames }));
-});
+router.get('/api/translations', (request, env) => new Response(JSON.stringify({ translations, languageNames })));
 
 // Real-time WebSocket connection route
 router.get('/api/live', (request, env) => {
@@ -55,31 +50,34 @@ router.get('/api/live', (request, env) => {
     return durableObject.fetch(request);
 });
 
-// Catch-all for other requests, serves static assets from the `site` binding
-router.all('*', (request, env) => {
-    try {
-        return env.ASSETS.fetch(request);
-    } catch (e) {
-        // This handles cases where the asset isn't found, especially for SPA routing.
-        // It fetches the index.html content to allow the client-side router to take over.
-        return env.ASSETS.fetch(new Request(new URL(request.url).origin + '/index.html'));
-    }
-});
-
+// --- Main Fetch Handler ---
 export default {
     async fetch(request, env, ctx) {
-        // Handle CORS preflight requests
         if (request.method === 'OPTIONS') {
             return withCors(new Response(null, { status: 204 }));
         }
 
-        // Apply rate limiting
         const { success } = await env.RATE_LIMITER.limit({ key: request.headers.get('CF-Connecting-IP') });
         if (!success) {
             return withCors(new Response('Rate limit exceeded', { status: 429 }));
         }
-        
-        const response = await router.handle(request, env, ctx);
+
+        // Try to match an API route first.
+        let response = await router.handle(request, env, ctx);
+
+        // If no API route was matched, it's a request for a static asset.
+        // Let the ASSETS service (configured by [site] in wrangler.toml) handle it.
+        if (!response) {
+            try {
+                response = await env.ASSETS.fetch(request);
+            } catch (e) {
+                // If the asset is not found, serve the SPA's index.html.
+                // This allows client-side routing to work correctly.
+                const notFoundResponse = await env.ASSETS.fetch(new Request(new URL(request.url).origin + '/index.html'));
+                response = new Response(notFoundResponse.body, { ...notFoundResponse, status: 404 });
+            }
+        }
+
         return withCors(response);
     }
 };
