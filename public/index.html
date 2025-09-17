@@ -3,64 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Livestock Tracker</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
-    <link rel="stylesheet" href="style.css">
+    <title>PigMap</title>
 </head>
 <body>
-    <div id="map"></div>
-
-    <div class="header">
-        <h1>Livestock Tracker</h1>
-        <div class="language-switcher">
-            <label for="language-select">Language:</label>
-            <select id="language-select"></select>
-        </div>
-    </div>
-
-    <div class="controls">
-        <button id="add-report-btn" data-i18n="add_new_marker">Add New Report</button>
-    </div>
-
-    <div id="report-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2 data-i18n="add_new_marker">Add New Report</h2>
-            <form id="report-form">
-                <input type="hidden" id="latitude" name="latitude">
-                <input type="hidden" id="longitude" name="longitude">
-
-                <div class="form-group">
-                    <label for="type" data-i18n="type">Type:</label>
-                    <select id="type" name="type" required>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="description" data-i18n="description">Description:</label>
-                    <textarea id="description" name="description" rows="3"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="media" data-i18n="media">Photo/Video (optional):</label>
-                    <input type="file" id="media" name="media" accept="image/*,video/*">
-                </div>
-
-                <div class="form-group">
-                    <button type="submit" data-i18n="save">Save</button>
-                    <button type="button" id="cancel-btn" data-i18n="cancel">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Make sure to load Leaflet's JS before our main script -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-            crossorigin=""></script>
-    <script src="main.js"></script>
+    <h1>Welcome to PigMap</h1>
+    <p>Frontend to be implemented here.</p>
 </body>
 </html>
