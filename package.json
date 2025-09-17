@@ -1,23 +1,17 @@
 {
-  "name": "livestock-tracker",
+  "name": "pigmap-worker",
   "version": "1.0.0",
-  "description": "Real-time livestock location tracker",
-  "main": "src/index.js",
+  "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "npm run copy-libs && wrangler deploy",
-    "copy-libs": "bash copy-libs.sh",
-    "verify:migrations": "node scripts/verify_migrations.js",
-    "verify:i18n": "node scripts/check_i18n.js"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
   },
   "dependencies": {
-    "es-module-shims": "^2.6.0",
-    "gsap": "^3.13.0",
-    "itty-router": "^4.2.2",
-    "leaflet": "^1.9.4",
+    "itty-router": "^4.0.23",
+    "toucan-js": "^3.3.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "wrangler": "^4.20.5"
+    "wrangler": "^3.0.0"
   }
 }

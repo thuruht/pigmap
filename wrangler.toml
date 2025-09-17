@@ -1,21 +1,27 @@
-# PigMap.org Cloudflare Worker Configuration
+# wrangler.toml
 
+# ┃▶ Worker Configuration
+# Defines the main entry point and compatibility settings for your Worker.
 name = "pigmap"
 main = "src/index.js"
 compatibility_date = "2024-06-01"
+compatibility_flags = ["nodejs_compat"]
 
-workers_dev = false  # Disable the workers.dev subdomain for production
-routes = [
-  # Main domain routes
-  { pattern = "pigmap.org/*", zone_name = "pigmap.org" },
-  { pattern = "www.pigmap.org/*", zone_name = "pigmap.org" },
-  { pattern = "media.pigmap.org/*", zone_name = "pigmap.org" },
-  
-  # Kansas City specific routes
-  { pattern = "kc.pigmap.org/*", zone_name = "pigmap.org" },
-  { pattern = "kcmo.pigmap.org/*", zone_name = "pigmap.org" },
-  { pattern = "kansascity.pigmap.org/*", zone_name = "pigmap.org" }
+# ┃▶ Static Asset Serving (Modern Approach)
+# This uses Cloudflare Pages to serve your frontend from the './public' directory.
+[site]
+bucket = "./public"
+# Define all domains that should serve the frontend assets.
+custom_domains = [
+  "pigmap.org",
+  "www.pigmap.org",
+  "kc.pigmap.org",
+  "kcmo.pigmap.org",
+  "kansascity.pigmap.org"
 ]
+
+# ┃▶ Service Bindings
+# Connects your Worker to other Cloudflare resources.
 
 # R2 Bucket for Media Storage
 [[r2_buckets]]
@@ -25,32 +31,32 @@ bucket_name = "livestock-media"
 # KV Namespace for Configuration
 [[kv_namespaces]]
 binding = "PIGMAP_CONFIG"
-id = "96dd87122a134b75a59e94a106d2b9ac"
+id = "96dd87122a134b75a59e94a106d2b9ac" # <-- REPLACE with your KV Namespace ID
 
 # D1 Database for Reports
 [[d1_databases]]
 binding = "LIVESTOCK_DB"
-database_name = "livestock"
-database_id = "11a70f2e-831a-4fdc-8447-d891fdf950b7"
+database_name = "livestock-db"
+database_id = "11a70f2e-831a-4fdc-8447-d891fdf950b7" # <-- REPLACE with your D1 Database ID
 
 # Durable Object for real-time updates
 [[durable_objects.bindings]]
 name = "LIVESTOCK_REPORTS"
 class_name = "LivestockReport"
 
+# Rate Limiter for security
+[rate_limiters]
+# Create this in the UI and replace the namespace name if different
+bindings = [{ name = "RATE_LIMITER", namespace_id = "CONNS_RATE_LIMIT" }]
+
+
+# ┃▶ Durable Object Migration
+# This enables the modern SQLite backend for your Durable Object class.
 [[migrations]]
 tag = "v1"
 new_classes = ["LivestockReport"]
 
-# Assets binding for static files
-[assets]
-directory = "./public"
-binding = "ASSETS"
-# Set SPA handling to improve asset routing behavior
-not_found_handling = "single-page-application"
-# Ensure everything passes through the worker first to set proper MIME types
-run_worker_first = true
-
-# Enable observability logs
+# ┃▶ Observability
+# Enables logging for your Worker.
 [observability.logs]
 enabled = true
