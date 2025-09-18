@@ -21,6 +21,10 @@ routes = [
 bucket = "./public"
 
 # ┃▶ SERVICE BINDINGS
+[[services]]
+binding = "ASSETS"
+service = "__STATIC_CONTENT_ASSETS"
+
 [[d1_databases]]
 binding = "LIVESTOCK_DB"
 database_name = "livestock-db"

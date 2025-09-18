@@ -74,7 +74,7 @@ export default {
                 // If the asset is not found, serve the SPA's index.html.
                 // This allows client-side routing to work correctly.
                 const notFoundResponse = await env.ASSETS.fetch(new Request(new URL(request.url).origin + '/index.html'));
-                response = new Response(notFoundResponse.body, { ...notFoundResponse, status: 404 });
+                response = new Response(notFoundResponse.body, { ...notFoundResponse, status: 200 });
             }
         }
 
