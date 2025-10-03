@@ -43,6 +43,52 @@ router.get('/api/reports/:id/comments', (request, env, ctx) => withErrorHandler(
 router.post('/api/reports/:id/comments', (request, env, ctx) => withErrorHandler(request, env, ctx)(() => handleCreateComment(request, env)));
 router.get('/api/translations', (request, env) => new Response(JSON.stringify({ translations, languageNames })));
 
+// Endpoint to serve the list of available icons
+router.get('/api/icons', (request, env) => {
+    const iconList = [
+        "abc_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "all_inclusive_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "apparel_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "auto_stories_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "book_5_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "books_movies_and_music_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "camera_roll_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "candle_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "copyright_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "crown_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "curtains_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "destruction_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "domino_mask_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "door_open_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "e911_emergency_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "eco_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "egg_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "emoji_nature_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "fertile_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "fingerprint_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "footprint_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "fort_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "frame_person_mic_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "front_loader_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "gate_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "hot_tub_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "ink_highlighter_move_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "kitchen_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "laundry_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "library_books_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "library_music_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "local_florist_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "location_searching_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "looks_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "mic_alert_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "military_tech_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "mindfulness_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "mode_heat_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "moped_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "movie_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "music_cast_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "music_note_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "nature_people_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "newsstand_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "nights_stay_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "not_listed_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "personal_bag_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "photo_prints_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "podcasts_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "psychology_alt_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "radar_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "radio_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "rainy_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "remember_me_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "rib_cage_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "science_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "sentiment_calm_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "sentiment_extremely_dissatisfied_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "sentiment_very_dissatisfied_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "siren_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "skull_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "sports_kabaddi_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "stock_media_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "store_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "storefront_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "styler_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "target_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "theater_comedy_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "today_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "transition_fade_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "video_library_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "voicemail_2_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png", "volume_up_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png",
+        "wall_art_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png"
+    ];
+    const uniqueIcons = [...new Set(iconList)];
+    return new Response(JSON.stringify(uniqueIcons), { headers: { 'Content-Type': 'application/json' } });
+});
+
 // Real-time WebSocket connection route
 router.get('/api/live', (request, env) => {
     const id = env.LIVESTOCK_REPORTS.idFromName('global-reports');

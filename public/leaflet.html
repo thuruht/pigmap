@@ -10,8 +10,8 @@
   <link href="https://fonts.bunny.net/css?family=chocolate-classical-sans:400|climate-crisis:400" rel="stylesheet">
   
   <!-- Leaflet CSS and JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="/lib/leaflet/leaflet.css" />
+  <script src="/lib/leaflet/leaflet.js"></script>
   
   <style>
     :root {
@@ -207,10 +207,12 @@
     // Initialize map
     const map = L.map('map').setView([39.8283, -98.5795], 5);
     
-    // Add tile layer (OpenStreetMap)
+    // Add tile layer (OpenStreetMap) - Commented out for local testing in sandboxed environment
+    /*
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+    */
     
     // Create a layer group for reports
     const reportsLayer = L.layerGroup().addTo(map);
@@ -316,7 +318,7 @@
           addReportToMap({
             id: result.id,
             ...reportData,
-            imageUrl: result.imageUrl
+            mediaUrl: result.mediaUrl
           });
         } else {
           alert("Error: " + (result.error || "Failed to submit report"));
@@ -392,7 +394,7 @@
             ${formatTimestamp(report.timestamp)} · Count: ${report.count || 1}
           </div>
           ${report.comment ? `<p>${report.comment}</p>` : ''}
-          ${report.imageUrl ? `<img src="${report.imageUrl}" alt="Report Image">` : ''}
+          ${report.mediaUrl ? `<img src="${report.mediaUrl}" alt="Report Image">` : ''}
         </div>
       `;
       
