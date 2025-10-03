@@ -1,6 +1,7 @@
 // src/handlers.js
 
 import { v4 as uuidv4 } from 'uuid';
+import { stripMetadata } from './image-utils';
 
 // Anonymously broadcasts a message through the Durable Object.
 async function broadcastUpdate(env, data) {
@@ -57,19 +58,19 @@ export async function handleCreateReport(request, env) {
 
     let mediaUrl = null;
     if (mediaFile && mediaFile.size > 0) {
-        // SECURITY NOTE: It is CRITICAL to strip EXIF and other metadata from uploads.
-        // Using Cloudflare Images (with metadata stripping enabled) is the recommended approach.
-        // If using R2 directly, you are responsible for cleaning the files.
-        const fileExt = mediaFile.name.split('.').pop();
+        const strippedMedia = await stripMetadata(mediaFile);
+
+        const fileExt = mediaFile.name.split('.').pop() || 'jpg';
         const fileName = `${reportId}.${fileExt}`;
-        await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.stream(), {
-            httpMetadata: { contentType: mediaFile.type }
+
+        await env.LIVESTOCK_MEDIA.put(fileName, strippedMedia.stream(), {
+            httpMetadata: { contentType: strippedMedia.type }
         });
         mediaUrl = `https://media.pigmap.org/${fileName}`;
 
         await env.LIVESTOCK_DB.prepare(
             `INSERT INTO media (report_id, url, content_type) VALUES (?, ?, ?)`
-        ).bind(reportId, mediaUrl, mediaFile.type).run();
+        ).bind(reportId, mediaUrl, strippedMedia.type).run();
     }
 
     const broadcastData = { type: 'new_report', payload: { ...reportData, id: reportId, timestamp: Date.now(), mediaUrl } };
@@ -79,6 +80,7 @@ export async function handleCreateReport(request, env) {
         success: true,
         id: reportId,
         editToken,
+        mediaUrl,
         message: "Keep this token to edit your report. This is the only time you will see it!"
     }), { status: 201, headers: { 'Content-Type': 'application/json' } });
 }
