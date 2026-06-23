@@ -128,9 +128,6 @@ export async function handleCreateReport(request, env) {
 
     await env.LIVESTOCK_DB.batch([
         env.LIVESTOCK_DB.prepare(
-            `INSERT INTO edit_tokens (token, report_id, expires_at) VALUES (?, ?, ?)`
-        ).bind(editToken, reportId, tokenExpiry),
-        env.LIVESTOCK_DB.prepare(
             `INSERT INTO reports (id, type, count, comment, longitude, latitude, timestamp, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
             reportId,
@@ -142,6 +139,9 @@ export async function handleCreateReport(request, env) {
             Date.now(),
             sanitizeHTML(reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png')
         ),
+        env.LIVESTOCK_DB.prepare(
+            `INSERT INTO edit_tokens (token, report_id, expires_at) VALUES (?, ?, ?)`
+        ).bind(editToken, reportId, tokenExpiry),
     ]);
 
     let mediaUrl = null;
@@ -155,8 +155,8 @@ export async function handleCreateReport(request, env) {
             });
             mediaUrl = `https://media.pigmap.org/${fileName}`;
             await env.LIVESTOCK_DB.prepare(
-                `INSERT INTO media (report_id, url, content_type) VALUES (?, ?, ?)`
-            ).bind(reportId, mediaUrl, mediaFile.type).run();
+                `INSERT INTO media (id, report_id, url, content_type) VALUES (?, ?, ?, ?)`
+            ).bind(uuidv4(), reportId, mediaUrl, mediaFile.type).run();
         } catch (err) {
             console.error('Media upload failed:', err.message);
             // Non-fatal: report is saved, media is dropped

@@ -73,6 +73,11 @@ function withCors(response) {
     if (!response) {
         return new Response('Not found', { status: 404 });
     }
+    // WebSocket upgrade responses have status 101 — cannot wrap in new Response
+    // (Response constructor only accepts 200-599). Return as-is.
+    if (response.status === 101) {
+        return response;
+    }
     const contentType = response.headers.get('Content-Type') || '';
     const isHtml = contentType.includes('text/html');
     const extra = {
