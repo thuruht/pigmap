@@ -2,120 +2,268 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
-// Anonymously broadcasts a message through the Durable Object.
-async function broadcastUpdate(env, data) {
-    const id = env.LIVESTOCK_REPORTS.idFromName('global-reports');
-    const durableObject = env.LIVESTOCK_REPORTS.get(id);
-    // Use a non-public URL for internal DO communication
-    await durableObject.fetch('https://internal.pigmap/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-    });
+const MAX_DESCRIPTION_LENGTH = 1000;
+const MAX_COMMENT_LENGTH = 500;
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+const ALLOWED_MIME_TYPES = new Set([
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
+    'video/mp4', 'video/webm', 'video/quicktime',
+    'audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac',
+]);
+
+function sanitizeHTML(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Handler to get the latest reports
+// Strip EXIF/metadata from JPEG images.
+async function stripJpegExif(blob) {
+    const buf = await blob.arrayBuffer();
+    const view = new DataView(buf);
+
+    if (view.getUint16(0, false) !== 0xFFD8) return blob; // not a JPEG
+
+    let offset = 2;
+    const safe = [buf.slice(0, 2)]; // keep SOI marker
+    while (offset < view.byteLength - 1) {
+        const marker = view.getUint16(offset, false);
+        if (marker === 0xFFDA) { // Start of Scan — rest is image data
+            safe.push(buf.slice(offset));
+            break;
+        }
+        const segLen = view.getUint16(offset + 2, false) + 2;
+        // Skip APP1-APPF segments (contain EXIF, XMP, ICC, etc.)
+        if (marker >= 0xFFE1 && marker <= 0xFFEF) {
+            offset += segLen;
+            continue;
+        }
+        safe.push(buf.slice(offset, offset + segLen));
+        offset += segLen;
+    }
+    return new Blob(safe, { type: 'image/jpeg' });
+}
+
+async function processMediaFile(file) {
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+        throw new Error(`File type not allowed: ${file.type}`);
+    }
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File too large: ${file.size} bytes`);
+    }
+    if (file.type === 'image/jpeg' || file.type === 'image/jpg') {
+        const blob = new Blob([await file.arrayBuffer()], { type: file.type });
+        return stripJpegExif(blob);
+    }
+    return file;
+}
+
+async function broadcastUpdate(env, data) {
+    try {
+        const id = env.LIVESTOCK_REPORTS.idFromName('global-reports');
+        const stub = env.LIVESTOCK_REPORTS.get(id);
+        await stub.fetch('https://internal.pigmap/broadcast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+    } catch (err) {
+        // Broadcast failure is non-fatal
+        console.warn('Broadcast failed:', err.message);
+    }
+}
+
 export async function handleGetReports(request, env) {
+    const url = new URL(request.url);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 200);
+
     const { results } = await env.LIVESTOCK_DB.prepare(
-        `SELECT r.id, r.type, r.description, r.longitude, r.latitude, r.timestamp, r.icon, m.url as mediaUrl
+        `SELECT r.id, r.type, r.count, r.comment, r.longitude, r.latitude, r.timestamp, r.icon,
+                m.url as mediaUrl, m.content_type as mediaType
          FROM reports r
          LEFT JOIN media m ON r.id = m.report_id
          ORDER BY r.timestamp DESC
-         LIMIT 100`
-    ).all();
-    return new Response(JSON.stringify(results), { headers: { 'Content-Type': 'application/json' } });
+         LIMIT ?`
+    ).bind(limit).all();
+
+    return new Response(JSON.stringify(results), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+    });
 }
 
-// Handler to create a new report
 export async function handleCreateReport(request, env) {
     const formData = await request.formData();
     const reportJson = formData.get('report');
     const mediaFile = formData.get('media');
 
     if (!reportJson) {
-        return new Response(JSON.stringify({ error: 'Missing report data' }), { status: 400 });
+        return new Response(JSON.stringify({ error: 'Missing report data' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
     }
 
-    const reportData = JSON.parse(reportJson);
+    let reportData;
+    try {
+        reportData = JSON.parse(reportJson);
+    } catch (_e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON in report field' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    // Validate required fields
+    if (!reportData.type || !reportData.longitude || !reportData.latitude) {
+        return new Response(JSON.stringify({ error: 'Missing required fields: type, longitude, latitude' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
     const reportId = uuidv4();
     const editToken = uuidv4();
-    const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + 7); // Token valid for 7 days
+    const tokenExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    const comment = sanitizeHTML((reportData.comment || reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH));
+    const count = Math.max(1, parseInt(reportData.count || 1, 10));
 
     await env.LIVESTOCK_DB.batch([
-      env.LIVESTOCK_DB.prepare(`INSERT INTO edit_tokens (token, report_id, expires_at) VALUES (?, ?, ?)`).bind(editToken, reportId, expiryDate.getTime()),
-      env.LIVESTOCK_DB.prepare(`INSERT INTO reports (id, type, description, longitude, latitude, timestamp, icon) VALUES (?, ?, ?, ?, ?, ?, ?)`).bind(
-        reportId,
-        reportData.type,
-        reportData.description || '',
-        reportData.longitude,
-        reportData.latitude,
-        Date.now(),
-        reportData.icon || 'default_icon.png'
-      )
+        env.LIVESTOCK_DB.prepare(
+            `INSERT INTO edit_tokens (token, report_id, expires_at) VALUES (?, ?, ?)`
+        ).bind(editToken, reportId, tokenExpiry),
+        env.LIVESTOCK_DB.prepare(
+            `INSERT INTO reports (id, type, count, comment, longitude, latitude, timestamp, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+            reportId,
+            sanitizeHTML(reportData.type),
+            count,
+            comment,
+            parseFloat(reportData.longitude),
+            parseFloat(reportData.latitude),
+            Date.now(),
+            sanitizeHTML(reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png')
+        ),
     ]);
 
     let mediaUrl = null;
     if (mediaFile && mediaFile.size > 0) {
-        // SECURITY NOTE: It is CRITICAL to strip EXIF and other metadata from uploads.
-        // Using Cloudflare Images (with metadata stripping enabled) is the recommended approach.
-        // If using R2 directly, you are responsible for cleaning the files.
-        const fileExt = mediaFile.name.split('.').pop();
-        const fileName = `${reportId}.${fileExt}`;
-        await env.LIVESTOCK_MEDIA.put(fileName, mediaFile.stream(), {
-            httpMetadata: { contentType: mediaFile.type }
-        });
-        mediaUrl = `https://media.pigmap.org/${fileName}`;
-
-        await env.LIVESTOCK_DB.prepare(
-            `INSERT INTO media (report_id, url, content_type) VALUES (?, ?, ?)`
-        ).bind(reportId, mediaUrl, mediaFile.type).run();
+        try {
+            const processed = await processMediaFile(mediaFile);
+            const ext = (mediaFile.name || 'file').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fileName = `${reportId}.${ext}`;
+            await env.LIVESTOCK_MEDIA.put(fileName, processed, {
+                httpMetadata: { contentType: mediaFile.type, cacheControl: 'public, max-age=31536000' },
+            });
+            mediaUrl = `https://media.pigmap.org/${fileName}`;
+            await env.LIVESTOCK_DB.prepare(
+                `INSERT INTO media (report_id, url, content_type) VALUES (?, ?, ?)`
+            ).bind(reportId, mediaUrl, mediaFile.type).run();
+        } catch (err) {
+            console.error('Media upload failed:', err.message);
+            // Non-fatal: report is saved, media is dropped
+        }
     }
 
-    const broadcastData = { type: 'new_report', payload: { ...reportData, id: reportId, timestamp: Date.now(), mediaUrl } };
-    await broadcastUpdate(env, broadcastData);
+    await broadcastUpdate(env, {
+        type: 'new_report',
+        payload: { ...reportData, id: reportId, timestamp: Date.now(), mediaUrl, comment, count },
+    });
 
     return new Response(JSON.stringify({
         success: true,
         id: reportId,
         editToken,
-        message: "Keep this token to edit your report. This is the only time you will see it!"
+        message: 'Save this token — it is the only way to edit your report.',
     }), { status: 201, headers: { 'Content-Type': 'application/json' } });
 }
 
-// Handler to update an existing report
 export async function handleUpdateReport(request, env) {
     const { id } = request.params;
-    const { report: reportData, editToken } = await request.json();
+    let body;
+    try {
+        body = await request.json();
+    } catch (_e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
 
-    if (!editToken) return new Response(JSON.stringify({ error: 'Edit token required' }), { status: 401 });
-    const tokenResult = await env.LIVESTOCK_DB.prepare(`SELECT report_id FROM edit_tokens WHERE token = ? AND report_id = ? AND expires_at > ?`).bind(editToken, id, Date.now()).first();
-    if (!tokenResult) return new Response(JSON.stringify({ error: 'Invalid or expired token' }), { status: 403 });
+    const { report: reportData, editToken } = body;
+    if (!editToken) {
+        return new Response(JSON.stringify({ error: 'Edit token required' }), {
+            status: 401, headers: { 'Content-Type': 'application/json' },
+        });
+    }
 
-    await env.LIVESTOCK_DB.prepare(`UPDATE reports SET type = ?, description = ? WHERE id = ?`).bind(reportData.type, reportData.description, id).run();
-    const updatedReport = await env.LIVESTOCK_DB.prepare(`SELECT r.*, m.url as mediaUrl FROM reports r LEFT JOIN media m ON r.id = m.report_id WHERE r.id = ?`).bind(id).first();
-    await broadcastUpdate(env, { type: 'update_report', payload: updatedReport });
+    const tokenRow = await env.LIVESTOCK_DB.prepare(
+        `SELECT report_id FROM edit_tokens WHERE token = ? AND report_id = ? AND expires_at > ?`
+    ).bind(editToken, id, Date.now()).first();
 
-    return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+    if (!tokenRow) {
+        return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+            status: 403, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    await env.LIVESTOCK_DB.prepare(
+        `UPDATE reports SET type = ?, comment = ? WHERE id = ?`
+    ).bind(
+        sanitizeHTML(reportData.type),
+        sanitizeHTML((reportData.comment || reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH)),
+        id
+    ).run();
+
+    const updated = await env.LIVESTOCK_DB.prepare(
+        `SELECT r.*, m.url as mediaUrl FROM reports r LEFT JOIN media m ON r.id = m.report_id WHERE r.id = ?`
+    ).bind(id).first();
+
+    await broadcastUpdate(env, { type: 'update_report', payload: updated });
+
+    return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json' },
+    });
 }
 
-// Handler to get comments for a report
 export async function handleGetComments(request, env) {
     const { id } = request.params;
-    const { results } = await env.LIVESTOCK_DB.prepare(`SELECT id, content, timestamp, media_url as mediaUrl FROM comments WHERE report_id = ? ORDER BY timestamp DESC`).bind(id).all();
-    return new Response(JSON.stringify(results), { headers: { 'Content-Type': 'application/json' } });
+    const { results } = await env.LIVESTOCK_DB.prepare(
+        `SELECT id, content, timestamp, media_url as mediaUrl
+         FROM comments WHERE report_id = ? ORDER BY timestamp DESC LIMIT 100`
+    ).bind(id).all();
+    return new Response(JSON.stringify(results), {
+        headers: { 'Content-Type': 'application/json' },
+    });
 }
 
-// Handler to create a new comment
 export async function handleCreateComment(request, env) {
     const { id: reportId } = request.params;
-    const { content } = await request.json();
+    let body;
+    try {
+        body = await request.json();
+    } catch (_e) {
+        return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    const { content } = body;
+    if (!content || typeof content !== 'string') {
+        return new Response(JSON.stringify({ error: 'Comment content required' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    const sanitized = sanitizeHTML(content.substring(0, MAX_COMMENT_LENGTH));
     const commentId = uuidv4();
     const timestamp = Date.now();
 
-    await env.LIVESTOCK_DB.prepare(`INSERT INTO comments (id, report_id, content, timestamp) VALUES (?, ?, ?, ?)`).bind(commentId, reportId, content, timestamp).run();
-    const broadcastData = { type: 'new_comment', payload: { reportId, id: commentId, content, timestamp } };
-    await broadcastUpdate(env, broadcastData);
+    await env.LIVESTOCK_DB.prepare(
+        `INSERT INTO comments (id, report_id, content, timestamp) VALUES (?, ?, ?, ?)`
+    ).bind(commentId, reportId, sanitized, timestamp).run();
 
-    return new Response(JSON.stringify({ success: true, id: commentId }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+    await broadcastUpdate(env, {
+        type: 'new_comment',
+        payload: { reportId, id: commentId, content: sanitized, timestamp },
+    });
+
+    return new Response(JSON.stringify({ success: true, id: commentId }), {
+        status: 201, headers: { 'Content-Type': 'application/json' },
+    });
 }

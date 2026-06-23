@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev"
+    "dev": "wrangler dev",
+    "verify": "npm run verify:i18n && npm run verify:migrations",
+    "verify:i18n": "node scripts/check_i18n.js",
+    "verify:migrations": "node scripts/verify_migrations.js"
   },
   "dependencies": {
     "itty-router": "^4.0.23",

@@ -70,6 +70,28 @@ Run it with:
 node scripts/verify_migrations.js
 ```
 
+### Continuous checks (Cloudflare Workers Builds)
+
+The i18n and migration verifiers run automatically as a **pre-deploy gate** on
+Cloudflare's build infrastructure. `wrangler.toml` declares:
+
+```toml
+build = { command = "npm run verify" }
+```
+
+Cloudflare Workers Builds invokes `wrangler deploy` on each push, which runs
+`npm run verify` (→ `verify:i18n` + `verify:migrations`) first. If either check
+fails, the build exits non-zero and the deploy is aborted. Run the same checks
+locally any time with:
+
+```bash
+npm run verify
+```
+
+> Note: GitHub Actions is not used for these checks — runner provisioning is
+> blocked at the account level on this repo, so verification was moved to
+> Cloudflare where it runs on every deploy.
+
 Rate limiting and configuration
 
 - PigMap uses a KV namespace (suggested name: `PIGMAP_RATE_LIMIT`) for short-lived rate-limiting counters. Bind it in `wrangler.toml` as `PIGMAP_RATE_LIMIT`.

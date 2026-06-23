@@ -1,12 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PigMap</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PigMap.org — a real-time, anonymous, community-driven map. Report and view sightings near you.">
+  <meta name="theme-color" content="#4a8f5c">
+  <title>PigMap</title>
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.bunny.net">
+  <link href="https://fonts.bunny.net/css?family=chocolate-classical-sans:400|climate-crisis:400" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <h1>Welcome to PigMap</h1>
-    <p>Frontend to be implemented here.</p>
+  <!-- Skip link for keyboard / screen-reader users -->
+  <a href="#add-report-btn" class="skip-link">Skip to actions</a>
+
+  <header class="header">
+    <h1 data-i18n="app_title">PigMap</h1>
+    <label for="language-select" class="visually-hidden" data-i18n="language">Language</label>
+    <select id="language-select" aria-label="Select language">
+      <option value="en">English</option>
+    </select>
+  </header>
+
+  <div class="controls">
+    <button id="add-report-btn" type="button" data-i18n="add_new_marker" aria-label="Add Report">
+      + Report
+    </button>
+    <button id="locate-btn" type="button" aria-label="Find my location">⊕ Locate</button>
+  </div>
+
+  <main>
+    <div id="map" role="application" aria-label="Map of reports"></div>
+  </main>
+
+  <!-- Report modal -->
+  <div id="report-modal" class="modal" style="display:none;" role="dialog"
+       aria-modal="true" aria-labelledby="report-modal-title">
+    <div class="modal-content">
+      <span class="close-btn" role="button" tabindex="0" aria-label="Close">&times;</span>
+      <h2 id="report-modal-title" data-i18n="add_new_marker">Add Report</h2>
+      <p class="modal-hint" data-i18n="add_marker_instruction">
+        Click on the map to set the location.
+      </p>
+
+      <form id="report-form">
+        <div class="form-group">
+          <label for="type" data-i18n="label_type">Type</label>
+          <select id="type" name="type" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="count">How many?</label>
+          <input type="number" id="count" name="count" min="1" value="1">
+        </div>
+
+        <div class="form-group">
+          <label for="description" data-i18n="label_description">Description</label>
+          <textarea id="description" name="description" rows="3" maxlength="1000"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="icon-select">Marker Icon</label>
+          <select id="icon-select" name="icon"></select>
+        </div>
+
+        <div class="form-group">
+          <label for="media" data-i18n="media">Photo / Video (optional)</label>
+          <input type="file" id="media" name="media" accept="image/*,video/*">
+        </div>
+
+        <input type="hidden" id="latitude" name="latitude">
+        <input type="hidden" id="longitude" name="longitude">
+
+        <div class="form-actions">
+          <button type="submit" data-i18n="save">Save</button>
+          <button type="button" id="cancel-btn" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification container -->
+  <div id="notification-container" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="/notifications.js"></script>
+  <script src="/main.js"></script>
 </body>
 </html>
