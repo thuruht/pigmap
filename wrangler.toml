@@ -25,16 +25,15 @@ routes = [
 ]
 
 # ┃▶ STATIC ASSETS
-# The [site] block efficiently handles serving static files from your "public" directory.
-[site]
-bucket = "./public"
-
-# ┃▶ SERVICE BINDINGS
-# __STATIC_CONTENT_ASSETS exposes the Workers Sites KV as an env.ASSETS Fetcher,
-# which is what the Worker uses to serve static files via env.ASSETS.fetch().
-[[services]]
+# The [assets] block serves static files from "./public" and exposes a native
+# Fetcher binding as env.ASSETS — no fake service binding required. This is the
+# modern replacement for the legacy [site] (Workers Sites) approach.
+#   - directory: source folder for static files
+#   - binding:   name the Worker uses in code (env.ASSETS.fetch())
+# Supported on wrangler 3.x (build server) and 4.x (local).
+[assets]
+directory = "./public"
 binding = "ASSETS"
-service = "__STATIC_CONTENT_ASSETS"
 
 [[d1_databases]]
 binding = "LIVESTOCK_DB"
