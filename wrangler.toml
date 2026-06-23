@@ -58,7 +58,7 @@ class_name = "LivestockReport"
 name = "RATE_LIMITER" # This is the name used in the code (env.RATE_LIMITER)
 type = "ratelimit"
 # A unique integer for this rule within your account. You can just make one up.
-namespace_id = 333
+namespace_id = "333"
 # The actual limit: 20 requests per 60 seconds.
 simple = { limit = 20, period = 60 }
 
