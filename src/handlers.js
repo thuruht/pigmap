@@ -110,8 +110,10 @@ export async function handleCreateReport(request, env) {
         });
     }
 
-    // Validate required fields
-    if (!reportData.type || !reportData.longitude || !reportData.latitude) {
+    // Validate required fields — use Number.isFinite so lon=0/lat=0 are accepted
+    const lon = parseFloat(reportData.longitude);
+    const lat = parseFloat(reportData.latitude);
+    if (!reportData.type || !Number.isFinite(lon) || !Number.isFinite(lat)) {
         return new Response(JSON.stringify({ error: 'Missing required fields: type, longitude, latitude' }), {
             status: 400, headers: { 'Content-Type': 'application/json' },
         });
@@ -135,8 +137,8 @@ export async function handleCreateReport(request, env) {
             sanitizeHTML(reportData.type),
             count,
             comment,
-            parseFloat(reportData.longitude),
-            parseFloat(reportData.latitude),
+            lon,
+            lat,
             Date.now(),
             sanitizeHTML(reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png')
         ),
@@ -192,6 +194,12 @@ export async function handleUpdateReport(request, env) {
         });
     }
 
+    if (!reportData || typeof reportData !== 'object') {
+        return new Response(JSON.stringify({ error: 'Missing report data' }), {
+            status: 400, headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
     const tokenRow = await env.LIVESTOCK_DB.prepare(
         `SELECT report_id FROM edit_tokens WHERE token = ? AND report_id = ? AND expires_at > ?`
     ).bind(editToken, id, Date.now()).first();
@@ -224,8 +232,7 @@ export async function handleUpdateReport(request, env) {
 export async function handleGetComments(request, env) {
     const { id } = request.params;
     const { results } = await env.LIVESTOCK_DB.prepare(
-        `SELECT id, content, timestamp, media_url as mediaUrl
-         FROM comments WHERE report_id = ? ORDER BY timestamp DESC LIMIT 100`
+        `SELECT id, content, timestamp FROM comments WHERE report_id = ? ORDER BY timestamp DESC LIMIT 100`
     ).bind(id).all();
     return new Response(JSON.stringify(results), {
         headers: { 'Content-Type': 'application/json' },

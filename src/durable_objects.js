@@ -27,10 +27,10 @@ export class LivestockReport {
         }
 
         const [client, server] = Object.values(new WebSocketPair());
-        // Hibernation API: the runtime manages sessions across evictions.
+        // Capture count before accept so the new socket isn't double-counted.
+        const activeUsers = this.state.getWebSockets().length + 1;
         this.state.acceptWebSocket(server);
 
-        const activeUsers = this.state.getWebSockets().length;
         server.send(JSON.stringify({ type: 'welcome', activeUsers }));
         this.broadcast(JSON.stringify({ type: 'active_users', count: activeUsers }), server);
 

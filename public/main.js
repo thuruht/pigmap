@@ -177,7 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const seenReportIds = new Set();
+
     function addReportMarker(report) {
+        if (!report.id || seenReportIds.has(report.id)) return;
+        seenReportIds.add(report.id);
         const icon = makeIcon(report.icon);
         const marker = icon
             ? L.marker([report.latitude, report.longitude], { icon }).addTo(map)
@@ -235,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             longitude: parseFloat(lonInput.value),
         };
 
-        if (!reportData.latitude || !reportData.longitude) {
+        if (!Number.isFinite(reportData.latitude) || !Number.isFinite(reportData.longitude)) {
             notify('Please click the map to set a location first.', 'warning');
             return;
         }
@@ -252,8 +256,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const result = await response.json();
             if (result.success) {
+                if (result.editToken) {
+                    const stored = JSON.parse(localStorage.getItem('pigmap-edit-tokens') || '{}');
+                    stored[result.id] = result.editToken;
+                    localStorage.setItem('pigmap-edit-tokens', JSON.stringify(stored));
+                }
                 closeReportModal();
-                notify('Report submitted successfully!', 'success');
+                notify('Report submitted! Your edit token has been saved in this browser.', 'success');
             } else {
                 notify('Error: ' + (result.error || 'Failed to submit report'), 'error');
             }
@@ -264,19 +273,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const socket = new WebSocket(`${protocol}//${window.location.host}/api/live`);
+        let attempt = 0;
 
-        socket.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                if (message.type === 'new_report') addReportMarker(message.payload);
-            } catch (err) {
-                console.error('WebSocket message error:', err);
-            }
-        };
-        socket.onclose = () => setTimeout(setupWebSocket, 3000);
-        socket.onerror = () => socket.close();
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const socket = new WebSocket(`${protocol}//${window.location.host}/api/live`);
+
+            socket.onopen = () => { attempt = 0; };
+
+            socket.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    if (message.type === 'new_report') addReportMarker(message.payload);
+                } catch (err) {
+                    console.error('WebSocket message error:', err);
+                }
+            };
+
+            // Exponential backoff: 1s, 2s, 4s, … capped at 30s
+            socket.onclose = () => {
+                const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+                attempt++;
+                setTimeout(connect, delay);
+            };
+
+            socket.onerror = () => socket.close();
+        }
+
+        connect();
     }
 
     function updateUIText() {

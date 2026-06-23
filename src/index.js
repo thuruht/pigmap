@@ -186,7 +186,6 @@ export default {
 
 async function runMaintenance(env) {
     const now = Date.now();
-    const nowIso = new Date(now).toISOString();
 
     try {
         // Delete edit tokens that have expired

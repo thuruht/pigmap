@@ -49,10 +49,10 @@ function run() {
   }
 
   const expected = {
-    reports: ['id','type','count','comment','longitude','latitude','timestamp','reporter_ip','created_at','icon'],
+    reports: ['id','type','count','comment','longitude','latitude','timestamp','created_at','icon'],
     media: ['id','report_id','url','content_type','created_at'],
     edit_tokens: ['token','report_id','expires_at','created_at'],
-    comments: ['id','report_id','content','timestamp','commenter_ip','created_at'],
+    comments: ['id','report_id','content','timestamp','created_at'],
     comment_media: ['id','comment_id','url','content_type','created_at']
   };
 
