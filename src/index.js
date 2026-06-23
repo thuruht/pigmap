@@ -4,6 +4,36 @@ import { Router } from 'itty-router';
 import { handleGetReports, handleCreateReport, handleUpdateReport, handleGetComments, handleCreateComment } from './handlers';
 import { translations, languageNames } from './i18n';
 
+// Static list of available marker icons in /public/icons/
+const ICONS = [
+    'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'siren_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'e911_emergency_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'radar_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'military_tech_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'footprint_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'destruction_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'skull_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'gate_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'door_open_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'fingerprint_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'location_searching_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'not_listed_location_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'target_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'domino_mask_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'nature_people_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'eco_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'front_loader_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'mic_alert_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+    'store_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png',
+];
+
+function handleGetIcons() {
+    return new Response(JSON.stringify(ICONS), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' },
+    });
+}
+
 export { LivestockReport } from './durable_objects';
 
 const router = Router();
@@ -17,10 +47,10 @@ const SECURITY_HEADERS = {
     'Content-Security-Policy': [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com https://fonts.bunny.net",
         "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://server.arcgisonline.com https://*.basemaps.cartocdn.com https://*.tile.opentopomap.org https://media.pigmap.org https://unpkg.com https://cdn.jsdelivr.net",
         "connect-src 'self' wss: ws: https://nominatim.openstreetmap.org",
-        "font-src 'self' https://cdn.jsdelivr.net",
+        "font-src 'self' https://cdn.jsdelivr.net https://fonts.bunny.net",
         "media-src 'self' https://media.pigmap.org",
         "object-src 'none'",
         "base-uri 'self'",
@@ -75,6 +105,7 @@ router.post('/api/reports',             withErrorHandler((req, env) => handleCre
 router.put('/api/reports/:id',          withErrorHandler((req, env) => handleUpdateReport(req, env)));
 router.get('/api/reports/:id/comments', withErrorHandler((req, env) => handleGetComments(req, env)));
 router.post('/api/reports/:id/comments',withErrorHandler((req, env) => handleCreateComment(req, env)));
+router.get('/api/icons',                withErrorHandler((req, env) => handleGetIcons(req, env)));
 router.get('/api/translations',         (_req) => new Response(JSON.stringify({ translations, languageNames }), {
     headers: { 'Content-Type': 'application/json' },
 }));

@@ -77,7 +77,7 @@ export async function handleGetReports(request, env) {
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 200);
 
     const { results } = await env.LIVESTOCK_DB.prepare(
-        `SELECT r.id, r.type, r.description, r.longitude, r.latitude, r.timestamp, r.icon,
+        `SELECT r.id, r.type, r.count, r.comment, r.longitude, r.latitude, r.timestamp, r.icon,
                 m.url as mediaUrl, m.content_type as mediaType
          FROM reports r
          LEFT JOIN media m ON r.id = m.report_id
@@ -121,22 +121,24 @@ export async function handleCreateReport(request, env) {
     const editToken = uuidv4();
     const tokenExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
-    const description = sanitizeHTML((reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH));
+    const comment = sanitizeHTML((reportData.comment || reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH));
+    const count = Math.max(1, parseInt(reportData.count || 1, 10));
 
     await env.LIVESTOCK_DB.batch([
         env.LIVESTOCK_DB.prepare(
             `INSERT INTO edit_tokens (token, report_id, expires_at) VALUES (?, ?, ?)`
         ).bind(editToken, reportId, tokenExpiry),
         env.LIVESTOCK_DB.prepare(
-            `INSERT INTO reports (id, type, description, longitude, latitude, timestamp, icon) VALUES (?, ?, ?, ?, ?, ?, ?)`
+            `INSERT INTO reports (id, type, count, comment, longitude, latitude, timestamp, icon) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
             reportId,
             sanitizeHTML(reportData.type),
-            description,
+            count,
+            comment,
             parseFloat(reportData.longitude),
             parseFloat(reportData.latitude),
             Date.now(),
-            sanitizeHTML(reportData.icon || 'default_icon.png')
+            sanitizeHTML(reportData.icon || 'local_police_128dp_BFF4CD_FILL0_wght400_GRAD0_opsz48.png')
         ),
     ]);
 
@@ -161,7 +163,7 @@ export async function handleCreateReport(request, env) {
 
     await broadcastUpdate(env, {
         type: 'new_report',
-        payload: { ...reportData, id: reportId, timestamp: Date.now(), mediaUrl },
+        payload: { ...reportData, id: reportId, timestamp: Date.now(), mediaUrl, comment, count },
     });
 
     return new Response(JSON.stringify({
@@ -201,10 +203,10 @@ export async function handleUpdateReport(request, env) {
     }
 
     await env.LIVESTOCK_DB.prepare(
-        `UPDATE reports SET type = ?, description = ? WHERE id = ?`
+        `UPDATE reports SET type = ?, comment = ? WHERE id = ?`
     ).bind(
         sanitizeHTML(reportData.type),
-        sanitizeHTML((reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH)),
+        sanitizeHTML((reportData.comment || reportData.description || '').substring(0, MAX_DESCRIPTION_LENGTH)),
         id
     ).run();
 
