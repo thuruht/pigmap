@@ -29,6 +29,13 @@ routes = [
 [site]
 bucket = "./public"
 
+# ┃▶ SERVICE BINDINGS
+# __STATIC_CONTENT_ASSETS exposes the Workers Sites KV as an env.ASSETS Fetcher,
+# which is what the Worker uses to serve static files via env.ASSETS.fetch().
+[[services]]
+binding = "ASSETS"
+service = "__STATIC_CONTENT_ASSETS"
+
 [[d1_databases]]
 binding = "LIVESTOCK_DB"
 database_name = "livestock-db"
@@ -51,7 +58,7 @@ class_name = "LivestockReport"
 name = "RATE_LIMITER" # This is the name used in the code (env.RATE_LIMITER)
 type = "ratelimit"
 # A unique integer for this rule within your account. You can just make one up.
-namespace_id = "333"
+namespace_id = 333
 # The actual limit: 20 requests per 60 seconds.
 simple = { limit = 20, period = 60 }
 

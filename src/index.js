@@ -140,8 +140,9 @@ export default {
             });
         }
 
-        // Global rate limiting via Cloudflare's built-in rate limiter binding
-        if (env.RATE_LIMITER) {
+        // Rate limiting — API paths only; static assets are exempt so a normal
+        // page load (JS, CSS, icons) doesn't exhaust the 20 req/60s budget.
+        if (env.RATE_LIMITER && new URL(request.url).pathname.startsWith('/api/')) {
             const key = request.headers.get('CF-Connecting-IP') || 'unknown';
             const { success } = await env.RATE_LIMITER.limit({ key });
             if (!success) {
