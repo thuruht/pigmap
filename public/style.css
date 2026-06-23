@@ -6,6 +6,10 @@ body, html {
     font-family: sans-serif;
 }
 
+main {
+    height: 100%;
+}
+
 #map {
     height: 100%;
     width: 100%;
@@ -120,4 +124,90 @@ button:hover {
 
 #cancel-btn:hover {
     background-color: #da190b;
+}
+
+/* Form actions row */
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-hint {
+    color: #666;
+    font-size: 0.9em;
+    margin-top: 0;
+}
+
+/* Language selector in the header */
+.header select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Accessibility: visually hidden but available to screen readers */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Skip link — visible only when focused */
+.skip-link {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    z-index: 3000;
+    background: #fff;
+    padding: 10px 15px;
+    border-radius: 0 0 5px 0;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+
+/* Notifications */
+#notification-container {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 320px;
+}
+
+.notification {
+    padding: 12px 16px;
+    border-radius: 5px;
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    font-size: 0.95em;
+}
+
+.notification.hide {
+    opacity: 0;
+}
+
+.notification.success { background-color: #4CAF50; }
+.notification.error   { background-color: #f44336; }
+.notification.warning { background-color: #ff9800; }
+.notification.info    { background-color: #2196F3; }
+
+/* Make the floating controls a bit nicer on mobile */
+@media (max-width: 600px) {
+    .header { left: 10px; right: 10px; }
+    .header h1 { font-size: 1.2em; }
+    .controls { top: auto; bottom: 20px; right: 20px; }
 }

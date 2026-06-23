@@ -5,6 +5,15 @@ main = "src/index.js"
 compatibility_date = "2024-06-01"
 compatibility_flags = ["nodejs_compat"]
 
+# ┃▶ PRE-DEPLOY CHECKS
+# Runs the i18n + migration verifiers before every `wrangler deploy`.
+# Because Cloudflare Workers Builds invokes `wrangler deploy`, this gates
+# deployment on the same checks GitHub Actions was meant to run — but on
+# Cloudflare's build infrastructure instead of GitHub-hosted runners.
+# A non-zero exit aborts the deploy. (Inline table so it doesn't capture
+# the top-level keys that follow.)
+build = { command = "npm run verify" }
+
 # ┃▶ ROUTES & DOMAINS
 # Use a routes table to direct traffic from your domains to this Worker.
 routes = [

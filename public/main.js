@@ -43,9 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initMap() {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        // Base layers (all allowed by the Worker's Content-Security-Policy)
+        const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxZoom: 19
+        });
+        const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+            maxZoom: 17
+        });
+        const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        });
+
+        street.addTo(map);
+        L.control.layers(
+            { 'Street': street, 'Satellite': satellite, 'Topographic': topo, 'Dark': dark },
+            null,
+            { position: 'topright' }
+        ).addTo(map);
 
         map.on('click', (e) => {
             // Only act on map click if the modal is already open, to place the marker
@@ -53,6 +75,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateReportLocation(e.latlng);
             }
         });
+    }
+
+    // Use the on-screen notification system when available, otherwise fall back to alert().
+    function notify(message, type = 'info') {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+        } else {
+            alert(message);
+        }
     }
 
     async function initI18n() {
@@ -88,7 +119,20 @@ document.addEventListener('DOMContentLoaded', () => {
             openReportModal(map.getCenter());
         });
         closeBtn.addEventListener('click', closeReportModal);
+        // Keyboard support: the close control is a <span role="button">
+        closeBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                closeReportModal();
+            }
+        });
         cancelBtn.addEventListener('click', closeReportModal);
+        // Escape closes the modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && reportModal.style.display === 'flex') {
+                closeReportModal();
+            }
+        });
         reportForm.addEventListener('submit', handleReportSubmit);
         languageSelect.addEventListener('change', (e) => {
             currentLang = e.target.value;
@@ -172,17 +216,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                // The websocket should add the marker, but we can add it immediately for better UX
-                // addReportMarker({ ...reportData, id: result.id });
+                // The websocket broadcasts the new report to all clients (including this one),
+                // which adds the marker. Just close the form here.
                 closeReportModal();
-                alert('Report submitted successfully!');
+                notify('Report submitted successfully!', 'success');
             } else {
-                 alert('Error: ' + (result.error || 'Failed to submit report'));
+                 notify('Error: ' + (result.error || 'Failed to submit report'), 'error');
             }
 
         } catch (error) {
             console.error('Error submitting report:', error);
-            alert('An error occurred while submitting the report.');
+            notify('An error occurred while submitting the report.', 'error');
         }
     }
 
@@ -244,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        document.title = translationSet['app_title'] || 'Livestock Tracker';
+        document.title = translationSet['app_title'] || 'PigMap';
     }
 
     function populateCategorySelector() {
