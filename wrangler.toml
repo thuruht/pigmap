@@ -56,6 +56,10 @@ simple = { limit = 20, period = 60 }
 tag = "v1"
 new_classes = ["LivestockReport"]
 
+# ┃▶ CRON TRIGGERS
+[triggers]
+crons = ["0 * * * *"]
+
 # ┃▶ OBSERVABILITY
 [observability.logs]
 enabled = true

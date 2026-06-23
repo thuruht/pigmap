@@ -1,12 +1,10 @@
 // src/durable_objects.js
+// Uses WebSocket Hibernation API — connections survive Worker restarts/evictions.
 
 export class LivestockReport {
     constructor(state, env) {
         this.state = state;
-        // The state object is still available for managing WebSocket sessions,
-        // but we'll use a simple in-memory array for this example.
-        // For hibernation support, you would manage sessions in this.state.storage.
-        this.sessions = [];
+        this.env = env;
     }
 
     async fetch(request) {
@@ -17,37 +15,57 @@ export class LivestockReport {
             this.broadcast(JSON.stringify(data));
             return new Response('Broadcasted', { status: 200 });
         }
-        
+
+        if (url.pathname.endsWith('/stats')) {
+            return new Response(JSON.stringify({
+                activeSessions: this.state.getWebSockets().length
+            }), { headers: { 'Content-Type': 'application/json' } });
+        }
+
         if (request.headers.get('Upgrade') !== 'websocket') {
             return new Response('Expected a WebSocket connection', { status: 400 });
         }
-        
+
         const [client, server] = Object.values(new WebSocketPair());
-        this.handleSession(server);
-        
+        // Hibernation API: the runtime manages sessions across evictions.
+        this.state.acceptWebSocket(server);
+
+        const activeUsers = this.state.getWebSockets().length;
+        server.send(JSON.stringify({ type: 'welcome', activeUsers }));
+        this.broadcast(JSON.stringify({ type: 'active_users', count: activeUsers }), server);
+
         return new Response(null, { status: 101, webSocket: client });
     }
 
-    handleSession(webSocket) {
-        webSocket.accept();
-        this.sessions.push(webSocket);
-
-        const closeOrErrorHandler = () => {
-            this.sessions = this.sessions.filter(session => session !== webSocket);
-        };
-        webSocket.addEventListener('close', closeOrErrorHandler);
-        webSocket.addEventListener('error', closeOrErrorHandler);
+    // Hibernation event handlers — called by the runtime.
+    async webSocketMessage(ws, message) {
+        try {
+            const data = JSON.parse(message);
+            if (data.type === 'ping') {
+                ws.send(JSON.stringify({ type: 'pong' }));
+            }
+        } catch (e) {
+            // ignore malformed messages
+        }
     }
 
-    broadcast(message) {
-        this.sessions = this.sessions.filter(session => {
+    async webSocketClose(ws, code, reason) {
+        const count = this.state.getWebSockets().length;
+        this.broadcast(JSON.stringify({ type: 'active_users', count }));
+    }
+
+    async webSocketError(ws, error) {
+        console.error('WebSocket error in DO:', error);
+    }
+
+    broadcast(message, skipWs = null) {
+        for (const ws of this.state.getWebSockets()) {
+            if (ws === skipWs) continue;
             try {
-                session.send(message);
-                return true;
-            } catch (err) {
-                // Connection is broken, filter it out.
-                return false;
+                ws.send(message);
+            } catch (e) {
+                // Hibernation API handles cleanup automatically; ignore send errors.
             }
-        });
+        }
     }
 }
