@@ -18,33 +18,35 @@
   <a href="#add-report-btn" class="skip-link">Skip to actions</a>
 
   <header class="header">
-    <h1 data-i18n="app_title">PigMap</h1>
-    <label for="language-select" class="visually-hidden" data-i18n="language">Language</label>
+    <h1>PigMap</h1>
+    <label for="language-select" class="visually-hidden">Language</label>
     <select id="language-select" aria-label="Select language">
       <option value="en">English</option>
     </select>
   </header>
 
   <div class="controls">
-    <button id="add-report-btn" type="button" data-i18n="add_new_marker" aria-label="Add Report">
+    <button id="add-report-btn" type="button" data-i18n="add_new_marker" aria-label="Add Report" aria-pressed="false">
       + Report
     </button>
     <button id="locate-btn" type="button" aria-label="Find my location">⊕ Locate</button>
+  </div>
+
+  <!-- Placement mode overlay hint -->
+  <div id="placement-hint" hidden role="status">
+    <span data-i18n="add_marker_instruction">Click on the map to place your report. Press Esc to cancel.</span>
   </div>
 
   <main>
     <div id="map" role="application" aria-label="Map of reports"></div>
   </main>
 
-  <!-- Report modal -->
+  <!-- Report submission modal -->
   <div id="report-modal" class="modal" style="display:none;" role="dialog"
        aria-modal="true" aria-labelledby="report-modal-title">
     <div class="modal-content">
-      <span class="close-btn" role="button" tabindex="0" aria-label="Close">&times;</span>
+      <span class="close-btn" id="close-report-btn" role="button" tabindex="0" aria-label="Close">&times;</span>
       <h2 id="report-modal-title" data-i18n="add_new_marker">Add Report</h2>
-      <p class="modal-hint" data-i18n="add_marker_instruction">
-        Click on the map to set the location.
-      </p>
 
       <form id="report-form">
         <div class="form-group">
@@ -53,7 +55,7 @@
         </div>
 
         <div class="form-group">
-          <label for="count">How many?</label>
+          <label for="count" data-i18n="label_count">How many?</label>
           <input type="number" id="count" name="count" min="1" value="1">
         </div>
 
@@ -63,12 +65,12 @@
         </div>
 
         <div class="form-group">
-          <label for="icon-select">Marker Icon</label>
+          <label for="icon-select" data-i18n="label_icon">Marker Icon</label>
           <select id="icon-select" name="icon"></select>
         </div>
 
         <div class="form-group">
-          <label for="media" data-i18n="media">Photo / Video (optional)</label>
+          <label for="media">Photo / Video (optional)</label>
           <input type="file" id="media" name="media" accept="image/*,video/*">
         </div>
 
@@ -78,6 +80,32 @@
         <div class="form-actions">
           <button type="submit" data-i18n="save">Save</button>
           <button type="button" id="cancel-btn" data-i18n="cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit report modal -->
+  <div id="edit-modal" class="modal" style="display:none;" role="dialog"
+       aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="modal-content">
+      <span class="close-btn" id="close-edit-btn" role="button" tabindex="0" aria-label="Close">&times;</span>
+      <h2 id="edit-modal-title" data-i18n="edit">Edit Report</h2>
+
+      <form id="edit-form">
+        <div class="form-group">
+          <label for="edit-type" data-i18n="label_type">Type</label>
+          <select id="edit-type" name="type" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-description" data-i18n="label_description">Description</label>
+          <textarea id="edit-description" name="description" rows="3" maxlength="1000"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" data-i18n="save">Save</button>
+          <button type="button" id="edit-cancel-btn" data-i18n="cancel">Cancel</button>
         </div>
       </form>
     </div>
